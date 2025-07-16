@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コイン天秤ゲーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrolling */
+            touch-action: none; /* Prevent browser touch actions like scrolling/zooming on body */
+            display: flex; /* Flexbox for body to center the main game container */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            background-color: #f3f4f6; /* Light gray background for body */
+        }
+        /* Main game container styling */
+        #gameContainer {
+            max-width: 1280px; /* Max width as requested */
+            max-height: 720px; /* Max height as requested */
+            min-width: 720px;  /* Min width as requested */
+            min-height: 480px; /* Min height as requested */
+            width: 100%; /* Take full width up to max-width */
+            aspect-ratio: 4 / 3; /* << 修正点: 縦横比を4:3に設定 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Hide overflow if content exceeds max-height */
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Large shadow */
+            background-color: #ffffff; /* White background for the container */
+            position: relative; /* For positioning userIdDisplay */
+        }
+
+        .pan-container {
+            transition: transform 0.5s ease-in-out;
+            position: relative; /* Ensure pans are relative for absolute coin positioning */
+        }
+        .pan-highlight {
+            background-color: rgba(255, 255, 0, 0.2); /* Yellowish highlight */
+        }
+        .coin {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: grab;
+            user-select: none;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            /* Ensure coins are above other elements like trash icon/pan text */
+            z-index: 10;
+            /* Prevent text selection during drag */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE 10+ */
+            user-select: none;         /* Standard */
+            touch-action: none; /* Crucial for touch dragging on the element itself */
+        }
+        .coin-blue { background-color: #60a5fa; color: white; } /* Blue-500 */
+        .coin-red { background-color: #ef4444; color: white; } /* Red-500 */
+        .coin-yellow { background-color: #facc15; color: black; } /* Yellow-400 */
+        .coin-green { background-color: #22c55e; color: white; } /* Green-500 */
+
+        /* Custom scrollbar for memo area */
+        .memo-area textarea { /* This rule is now effectively for the textarea directly */
+            resize: vertical; /* Allow vertical resizing */
+            scrollbar-width: thin;
+            scrollbar-color: #9ca3af #e5e7eb;
+        }
+        .memo-area textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        .memo-area textarea::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .memo-area textarea::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+        .modal-content {
+            z-index: 101;
+        }
+
+        /* Styles for the coin being dragged */
+        .coin.dragging {
+            position: fixed; /* Use fixed to allow dragging over all elements */
+            z-index: 1000;
+            cursor: grabbing;
+        }
+
+        /* Coin Area: Now a relative container for absolutely positioned coins */
+        #coinArea {
+            position: relative;
+            overflow: hidden; /* Hide coins that are dragged outside */
+        }
+
+        .trash-bin-area {
+            position: relative; /* Ensure trash bin is relative for absolute coin positioning */
+        }
+        .trash-bin-area .text-gray-500 {
+            z-index: 1;
+        }
+        .trash-bin-area .fa-trash-alt {
+            z-index: 1;
+        }
+
+        .electromagnet-box {
+            transition: transform 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out; /* Added color transitions */
+            position: relative; /* Ensure electromagnet box is relative for absolute coin positioning */
+        }
+
+        /* Memo Area Container for Icon */
+        .memo-container {
+            position: relative;
+            flex-shrink: 0; /* Prevent it from shrinking */
+            min-height: 80px; /* Match textarea min-height */
+            max-height: 200px; /* Match textarea max-height */
+            display: flex; /* To center textarea vertically if needed */
+            align-items: stretch; /* Make textarea fill height */
+        }
+        .memo-container .memo-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1; /* Below textarea */
+        }
+        .memo-container textarea {
+            position: relative;
+            z-index: 2; /* Above icon */
+            background-color: transparent; /* Make textarea background transparent to show icon */
+        }
+
+        /* Add pointer-events: none to all placeholder texts and icons */
+        #leftPanPlaceholderText, #leftPanPlaceholderIcon, #leftPanMoonIcon,
+        #rightPanPlaceholderText, #rightPanPlaceholderIcon, #rightPanMoonIcon,
+        #coinAreaPlaceholderText, #coinAreaPlaceholderIcon,
+        #trashBinPlaceholderText, #trashBinPlaceholderIcon,
+        #leftMiniPanPlaceholderText, #leftMiniPanPlaceholderIcon, #leftMiniPanMoonIcon,
+        #rightMiniPanPlaceholderText, #rightMiniPanPlaceholderIcon, #rightMiniPanMoonIcon,
+        #miniBalanceLabel, /* Added mini balance label */
+        #electromagnetBox .fa-magnet, /* Electromagnet icon */
+        .memo-container .memo-icon {
+            pointer-events: none;
+        }
+
+        /* Set z-index for mini balance icon to be behind pans */
+        #miniBalanceArea .fa-balance-scale {
+            pointer-events: none;
+            z-index: -1; /* Changed from 0 to -1 */
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+            import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+            import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+            window.firebaseApp = null;
+            window.db = null;
+            window.auth = null;
+            window.userId = null;
+            window.isAuthReady = false;
+            window.firestoreCollection = null;
+            window.firestoreDoc = null;
+            window.firestoreGetDoc = null;
+            window.firestoreSetDoc = null;
+            window.highestClearedStage = 0;
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    if (Object.keys(firebaseConfig).length > 0) {
+                        window.firebaseApp = initializeApp(firebaseConfig);
+                        window.db = getFirestore(window.firebaseApp);
+                        window.auth = getAuth(window.firebaseApp);
+
+                        window.firestoreCollection = collection;
+                        window.firestoreDoc = doc;
+                        window.firestoreGetDoc = getDoc;
+                        window.firestoreSetDoc = setDoc;
+
+                        onAuthStateChanged(window.auth, async (user) => {
+                            if (user) {
+                                window.userId = user.uid;
+                            } else {
+                                if (initialAuthToken) {
+                                    await signInWithCustomToken(window.auth, initialAuthToken);
+                                } else {
+                                    await signInAnonymously(window.auth);
+                                }
+                                window.userId = window.auth.currentUser?.uid || crypto.randomUUID();
+                            }
+                            window.isAuthReady = true;
+                            document.dispatchEvent(new CustomEvent('firebaseReady'));
+                        });
+                    } else {
+                        window.isAuthReady = true;
+                        window.userId = crypto.randomUUID();
+                        document.dispatchEvent(new CustomEvent('firebaseReady'));
+                    }
+                } catch (error) {
+                    console.error("Firebase initialization error:", error);
+                    window.isAuthReady = true;
+                    window.userId = crypto.randomUUID();
+                    document.dispatchEvent(new CustomEvent('firebaseReady'));
+                }
+            });
+        </script>
+
+        <div id="infoArea" class="information-area bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex items-center justify-between shadow-lg rounded-b-xl h-[10%] min-h-[70px]">
+            <button id="resetButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                <i class="fas fa-redo-alt text-xl"></i>
+            </button>
+            <div class="game-goal text-center flex-grow mx-4 flex items-center justify-center">
+                <img id="gameGoalImage" src="https://www.google.com/favicon.ico" alt="Game Goal Icon" class="w-6 h-6 mr-2 object-contain cursor-pointer">
+                <h2 id="gameGoalText" class="text-sm md:text-base font-semibold cursor-pointer">目標: ステージを選択してください</h2>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="evaluationStars" class="text-yellow-400 text-2xl md:text-3xl"></div>
+                <div id="practiceProgressDisplay" class="text-blue-400 text-2xl md:text-3xl flex items-center space-x-1 hidden"></div>
+                <button id="bookButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-book-open text-xl"></i>
+                </button>
+                <button id="stageButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-layer-group text-xl"></i>
+                </button>
+                <button id="practiceModeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-dumbbell text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="game-board flex flex-grow p-4 space-x-4">
+            <div class="main-area w-2/3 flex flex-col space-y-4">
+                <div id="balanceArea" class="balance-area bg-white rounded-xl shadow-lg p-4 flex items-center justify-around flex-grow relative overflow-hidden min-height: 300">
+                    <div id="leftPanArea" class="left-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
+                        <div id="leftPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 left-2">左の皿</div>
+                        <i id="leftPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                        <i id="leftPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                    </div>
+                    <div class="execution-info flex flex-col items-center justify-center h-full w-1/3 space-y-4">
+                        <button id="executeButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300 text-sm md:text-base">
+                            <i class="fas fa-balance-scale mr-2"></i>比較
+                        </button>
+                        <div class="execution-count bg-gray-700 py-2 px-4 rounded-lg shadow-inner text-sm md:text-base text-white">
+                            実行数: <span id="executionCountDisplay" class="text-white">0</span>
+                        </div>
+                    </div>
+                    <div id="rightPanArea" class="right-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
+                        <div id="rightPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 right-2">右の皿</div>
+                        <i id="rightPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                        <i id="rightPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                    </div>
+                </div>
+
+                <div id="coinArea" class="coin-area bg-white rounded-xl shadow-lg px-2 py-4 h-[35%] overflow-y-auto">
+                    <div id="coinAreaPlaceholderText" class="text-gray-500 text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">コインをここに生成します</div>
+                    <i id="coinAreaPlaceholderIcon" class="fas fa-box-open text-gray-300 text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                </div>
+
+                <div class="memo-container w-full rounded-xl shadow-lg bg-blue-50 border border-gray-300 flex-shrink overflow-y-auto" style="min-height: 80px; max-height: 200px;">
+                    <i class="fas fa-clipboard text-pink-200 text-8xl opacity-50 memo-icon"></i>
+                    <textarea id="memoTextarea" class="w-full p-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 rounded-lg" placeholder="ここにメモを入力してください..." style="min-height: 100%; max-height: 100%; background-color: transparent;"></textarea>
+                </div>
+            </div>
+
+            <div class="sub-area w-1/3 flex flex-col space-y-4">
+                <div id="electromagnetArea" class="electromagnet-area bg-white rounded-xl shadow-lg p-2 h-[30%] flex items-center justify-start relative overflow-hidden hidden">
+                    <div id="electromagnetBox" class="electromagnet-box bg-yellow-100 rounded-lg p-1 w-4/5 h-full flex flex-wrap justify-center items-center relative transition-transform duration-300 ease-out z-20 border-4 border-gray-300">
+                        <i class="fas fa-magnet text-yellow-500 text-8xl opacity-50 absolute inset-0 flex items-center justify-center" style="z-index:1;"></i>
+                    </div>
+                    <div class="flex flex-col items-center justify-around h-full ml-2">
+                        <i class="fas fa-bolt text-yellow-200 text-2xl"></i>
+                        <i class="fas fa-battery-full text-yellow-200 text-2xl"></i>
+                        <i class="fas fa-bolt text-yellow-200 text-2xl"></i>
+                    </div>
+                    <div id="electromagnetInactivePlaceholder" class="absolute inset-0 bg-gray-200 rounded-xl shadow-inner flex items-center justify-center text-gray-500 text-lg hidden">
+                        <i class="fas fa-wrench text-4xl"></i>
+                    </div>
+                </div>
+                <div id="miniBalanceArea" class="mini-balance-area bg-white rounded-xl shadow-lg p-4 h-[30%] flex items-center justify-around relative overflow-hidden hidden">
+                    <div id="leftMiniPanArea" class="left-mini-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
+                        <div id="leftMiniPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 left-2">左のミニ皿</div>
+                        <i id="leftMiniPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                        <i id="leftMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                    </div>
+                    <div id="miniBalanceLabel" class="text-gray-500 text-sm">ミニ天秤</div>
+                    <i class="fas fa-balance-scale text-sky-200 text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                    <div id="rightMiniPanArea" class="right-mini-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
+                        <div id="rightMiniPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 right-2">右のミニ皿</div>
+                        <i id="rightMiniPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                        <i id="rightMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                    </div>
+                    <div id="miniBalanceInactivePlaceholder" class="absolute inset-0 bg-gray-200 rounded-xl shadow-inner flex items-center justify-center text-gray-500 text-lg hidden">
+                        <i class="fas fa-wrench text-4xl"></i>
+                    </div>
+                </div>
+                <div class="trash-area h-[40%] flex">
+                    <div id="trashBinArea" class="trash-bin-area bg-red-100 rounded-xl p-4 w-[65%] flex flex-wrap justify-center items-center relative overflow-y-auto border-4 border-red-300">
+                        <div id="trashBinPlaceholderText" class="text-gray-500 text-sm absolute top-2 left-2">ゴミ箱</div>
+                        <i id="trashBinPlaceholderIcon" class="fas fa-trash-alt text-red-300 text-6xl opacity-50 absolute inset-0 flex items-center justify-center"></i>
+                    </div>
+                    <div class="discard-button-container w-[35%] flex items-center justify-center p-2">
+                        <button id="discardButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 opacity-50 cursor-not-allowed w-full h-full flex items-center justify-center text-sm" disabled>
+                            <i class="fas fa-check-circle mr-1"></i>廃棄
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ruleWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">ゲームルール</h2>
+                <div id="ruleContent" class="flex-grow overflow-y-auto mb-6 text-gray-700 text-lg"></div>
+                <div class="flex justify-between items-center mt-auto">
+                    <button id="prevRulePage" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out" disabled>
+                        <i class="fas fa-arrow-left mr-2"></i>前へ
+                    </button>
+                    <span id="rulePageIndicator" class="text-gray-600 text-sm">1 / 1</span>
+                    <button id="nextRulePage" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                        次へ<i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button id="closeRuleWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg ml-4 transition duration-300 ease-in-out w-fit">
+                        閉じる
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="stageSelectWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">ステージ選択</h2>
+                <div id="stageList" class="flex-grow overflow-y-auto mb-6 space-y-4"></div>
+                <button id="closeStageSelectWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-auto transition duration-300 ease-in-out w-fit mx-auto">
+                    閉じる
+                </button>
+            </div>
+        </div>
+
+        <div id="practiceModeWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">実践モード</h2>
+                <p class="text-lg text-gray-700 mb-4 text-center">ランダムに選ばれた5つのステージを連続でクリアしよう！</p>
+                <div id="practiceStageList" class="flex-grow overflow-y-auto mb-6 space-y-4"></div>
+                <button id="startPracticeButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-play-circle mr-2"></i>実践モード開始
+                </button>
+                <button id="closePracticeModeWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-4 transition duration-300 ease-in-out w-fit mx-auto">
+                    閉じる
+                </button>
+            </div>
+        </div>
+
+        <div id="stageDescriptionWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-2/3 lg:w-1/2 text-center flex flex-col items-center">
+                <h2 id="stageDescTitle" class="text-4xl font-bold mb-4 text-gray-800"></h2>
+                <div class="flex items-center justify-center mb-4">
+                    <img id="stageDescImage" src="https://www.google.com/favicon.ico" alt="Stage Description Icon" class="w-6 h-6 mr-2 object-contain">
+                    <p id="stageDescDescription" class="text-lg text-gray-700"></p>
+                </div>
+                <p id="stageDescGoal" class="text-2xl font-semibold text-blue-700 mb-8"></p>
+                <button id="stageDescStartButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-play-circle mr-2"></i>ゲーム開始
+                </button>
+                <button id="closeDescWindowButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                    <i class="fas fa-undo-alt mr-2"></i>戻る
+                </button>
+            </div>
+        </div>
+
+        <div id="resultWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-2/3 lg:w-1/3 text-center flex flex-col items-center">
+                <h2 id="resultTitle" class="text-4xl font-bold mb-4 text-gray-800"></h2>
+                <p id="resultStageInfo" class="text-xl text-gray-700 mb-2"></p>
+                <p id="resultGoal" class="text-lg text-gray-600 mb-4"></p>
+                <div id="resultStars" class="text-yellow-400 text-5xl mb-6 flex items-center justify-center space-x-2"></div>
+                <p id="resultExecutionCount" class="text-2xl text-gray-700 mb-8"></p>
+                <div class="flex space-x-4">
+                    <button id="resultRetryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-redo-alt mr-2"></i>もう一度
+                    </button>
+                    <button id="resultRetryPracticeButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-redo-alt mr-2"></i>もう一度
+                    </button>
+                    <button id="resultNextButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-arrow-right mr-2"></i>次へ
+                    </button>
+                    <button id="resultEndPracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-times-circle mr-2"></i>終了
+                    </button>
+                    <button id="resultBackButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-undo-alt mr-2"></i>戻る
+                    </button>
+                    <button id="resultRestartButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        <i class="fas fa-sync-alt mr-2"></i>最初から
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        document.addEventListener('firebaseReady', () => {
+            initializeGame();
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('UNHANDLED PROMISE REJECTION:', event.reason);
+        });
+
+        let currentDraggedCoinElement = null;
+        let shiftX = 0;
+        let shiftY = 0;
+        let isPointerDown = false;
+        let initialPointerX = 0;
+        let initialPointerY = 0;
+        const DRAG_THRESHOLD = 5;
+        let originalCoinPositionOnDragStart = null;
+        let isDragging = false;
+
+        let coins = [];
+        let balanceLeftPan = [];
+        let balanceRightPan = [];
+        let miniBalanceLeftPan = [];
+        let miniBalanceRightPan = [];
+        let trashBin = [];
+        let electromagnetBox = [];
+        let executionCount = 0;
+        let currentStage = null;
+        let evaluationStars = 0;
+        let currentRulePageIndex = 0;
+        let practiceModeStages = [];
+        let currentPracticeStageIndex = 0;
+        let isInPracticeMode = false;
+
+        const coinColors = ['coin-blue', 'coin-red', 'coin-yellow', 'coin-green'];
+        const coinTypes = {
+            normalCoin: { weight: 10, material: 'steel' },
+            heavyCoin: { weight: 11, material: 'steel' },
+            lightCoin: { weight: 9, material: 'steel' },
+            differentCoin: { weight: 10, material: 'steel' },
+        };
+
+        const stages = [
+            {
+                stageNumber: 1,
+                goalText: "重いコイン　× 1",
+                stageDescription: "4枚の中から重いコインを探して廃棄しておくれ",
+                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 1 }],
+                targetCoinArray: [{ type: 'heavyCoin', count: 1 }],
+                targetExecutionCount1: 2,
+                targetExecutionCount2: 3,
+                electromagnetMaterials: ['steel'],
+                electromagnetActive: false,
+                miniBalanceActive: false
+            },
+            {
+                stageNumber: 2,
+                goalText: "重いコイン　× 1",
+                stageDescription: "5枚の中から<br>重いコインを探して廃棄しておくれ",
+                generateCoinArray: [{ type: 'normalCoin', count: 4 }, { type: 'heavyCoin', count: 1 }],
+                targetCoinArray: [{ type: 'heavyCoin', count: 1 }],
+                targetExecutionCount1: 2,
+                targetExecutionCount2: 3,
+                electromagnetMaterials: ['steel'],
+                electromagnetActive: true,
+                miniBalanceActive: false
+            },
+            {
+                stageNumber: 3,
+                goalText: "重いコイン　× 2",
+                stageDescription: "5枚の中から重いコインを探して廃棄しておくれ",
+                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 2 }],
+                targetCoinArray: [{ type: 'heavyCoin', count: 2 }],
+                targetExecutionCount1: 2,
+                targetExecutionCount2: 3,
+                electromagnetMaterials: ['steel'],
+                electromagnetActive: true,
+                miniBalanceActive: true
+            },
+            {
+                stageNumber: 4,
+                goalText: "軽いコイン　× 1",
+                stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ",
+                generateCoinArray: [{ type: 'normalCoin', count: 11 }, { type: 'lightCoin', count: 1 }],
+                targetCoinArray: [{ type: 'lightCoin', count: 1 }],
+                targetExecutionCount1: 3,
+                targetExecutionCount2: 5,
+                electromagnetMaterials: ['steel'],
+                electromagnetActive: false,
+                miniBalanceActive: false
+            },
+            {
+                stageNumber: 5,
+                goalText: "軽いコイン　× 1 重いコイン　× 1",
+                stageDescription: "5枚の中から軽いコインと重いコインを探して廃棄しておくれ",
+                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'lightCoin', count: 1 }, { type: 'heavyCoin', count: 1 }],
+                targetCoinArray: [{ type: 'lightCoin', count: 1 }, { type: 'heavyCoin', count: 1 }],
+                targetExecutionCount1: 3,
+                targetExecutionCount2: 4,
+                electromagnetMaterials: ['steel'],
+                electromagnetActive: false,
+                miniBalanceActive: true
+            }
+        ];
+
+        const rulePages = [
+            `
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">1. ゲームの目的</h3>
+            <p class="mb-4">このゲームでは、複数のコインの中から、他のコインとは重さが異なる「目標コイン」を特定することが目的です。</p>
+            <p class="mb-4">天秤を使ってコインの重さを比較し、少ない比較回数で目標コインを見つけ出すことを目指しましょう。</p>
+
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">2. UIの紹介</h3>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>インフォメーションエリア（上部）:</strong>
+                    <ul class="list-circle list-inside ml-4">
+                        <li><strong>リセットボタン:</strong> 現在の問題をリセットし、コインをシャッフルします。</li>
+                        <li><strong>ゲーム目標:</strong> 現在のステージの目標が表示されます。</li>
+                        <li><strong>評価:</strong> ステージクリア時の評価（星1〜3）が表示されます。</li>
+                        <li><strong>ルールボタン:</strong> このルールウィンドウを開きます。</li>
+                        <li><strong>ステージボタン:</strong> ステージ選択ウィンドウを開きます。</li>
+                        <li><strong>実践モードボタン:</strong> 5つのステージを連続でクリアする実践モードを開始します。</li>
+                    </ul>
+                </li>
+                <li><strong>ゲームボード（下部）:</strong> メインエリアとサブエリアに分かれています。</li>
+            </ul>
+            `,
+            `
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">3. コインの操作</h3>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>コインエリア:</strong> ゲーム開始時にコインが生成される場所です。</li>
+                <li><strong>ドラッグ＆ドロップ:</strong> コインは「コインエリア」「左の皿エリア」「右の皿エリア」「ゴミ箱エリア」「電磁石エリア」「左のミニ皿エリア」「右のミニ皿エリア」の間で自由にドラッグ＆ドロップできます。</li>
+                <li><strong>ダブルクリック:</strong> コインをダブルクリックすると、色が「青 → 赤 → 黄 → 緑 → 青 → …」と変化します。これはプレイヤーがコインに目印を付けるための機能です。</li>
+            </ul>
+
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">4. 天秤の使用</h3>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>左の皿エリア / 右の皿エリア:</strong> コインを置いて重さを比較する場所です。</li>
+                <li><strong>比較ボタン:</strong> 両方の皿にコインを置いた状態で比較ボタンを押すと、天秤が比較されます。</li>
+                <li><strong>比較結果:</strong>
+                    <ul class="list-circle list-inside ml-4">
+                        <li><strong>釣り合った場合:</strong> 皿の位置は変わりません。</li>
+                        <li><strong>重さに差がある場合:</strong> 重い皿が少し下がり、軽い皿が少し上がります。</li>
+                    </ul>
+                </li>
+                <li><strong>実行回数:</strong> 比較するたびに実行回数がカウントされます。少ない回数でクリアすると高評価が得られます。</li>
+                <li><strong>ハイライト:</strong> 比較後、両皿エリアが一時的にハイライトされます。コインを動かすとハイライトは解除されます。</li>
+            </ul>
+            `,
+            `
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">5. 電磁石エリア</h3>
+            <p class="mb-4">このエリアは<strong>ステージ1クリア後に開放</strong>されます。各ステージでアクティブ設定されている場合にのみ機能します。</p>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>電磁石ボックス:</strong> コインを置くことができるエリアです。</li>
+                <li><strong>電磁石の効果:</strong> 比較ボタンを押した際に、電磁石ボックス内に規定の属性（例: 鉄）を持つコインが1つでも含まれていれば、電磁石ボックスが右に少し動き、背景色が黄色から薄いオレンジに変化します。この場合、天秤の皿にコインが置かれていなくても比較を実行できます。</li>
+                <li><strong>位置のリセット:</strong> 電磁石ボックス内のコイン数が変化したり、天秤の皿エリアのコイン数が変化したりすると、電磁石ボックスの位置と色は元に戻ります。</li>
+            </ul>
+
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">6. ミニ天秤エリア</h3>
+            <p class="mb-4">このエリアは<strong>ステージ2クリア後に開放</strong>されます。各ステージでアクティブ設定されている場合にのみ機能します。メインの天秤と同様にコインの重さを比較するために使用できます。</p>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>左のミニ皿エリア / 右のミニ皿エリア:</strong> コインを置いて重さを比較する場所です。</li>
+                <li><strong>コイン数制限:</strong> 各皿には最大1枚のコインしか置けません。</li>
+                <li><strong>比較ボタンの共有:</strong> メイン天秤の「比較」ボタンは、ミニ天秤の比較にも使用されます。メイン天秤にコインがない場合、ミニ天秤にコインがあればそちらが比較されます。</li>
+                <li><strong>比較結果:</strong> メイン天秤と同様に、重さに応じて皿が上下に移動します。</li>
+            </ul>
+            `,
+            `
+            <h3 class="2xl font-semibold mb-3 text-gray-700">7. 目標コインの特定と廃棄</h3>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>メモエリア:</strong> プレイヤーが自由にテキストを入力できるメモ帳です。情報整理に活用しましょう。</li>
+                <li><strong>ゴミ箱エリア:</strong> 目標コインを特定したら、そのコインをこのエリアにドラッグ＆ドロップします。</li>
+                <li><strong>廃棄ボタン:</strong> ゴミ箱エリアに目標コインと同じ数のコインが置かれるとアクティブになります。クリックすると、正解判定が行われ結果ウィンドウが表示されます。</li>
+            </ul>
+
+            <h3 class="text-2xl font-semibold mb-3 text-gray-700">8. 結果と評価</h3>
+            <ul class="list-disc list-inside mb-4 space-y-2">
+                <li><strong>結果ウィンドウ:</strong>
+                    <ul class="list-circle list-inside ml-4">
+                        <li><strong>正解の場合:</strong> ステージ番号、ゲーム目標、獲得した星の数、実行回数が表示されます。「もう一度」ボタンと「次へ」ボタンで次のアクションを選択できます。</li>
+                        <li><strong>不正解の場合:</strong> 「不正解」と表示され、「戻る」ボタンでゲームに戻るか、「最初から」ボタンでステージを最初からやり直すことができます。</li>
+                    </ul>
+                </li>
+                <li><strong>評価（星の数）:</strong>
+                    <ul class="list-circle list-inside ml-4">
+                        <li><strong>星3つ:</strong> 実行回数が「目標実行回数1」以下</li>
+                        <li><strong>星2つ:</strong> 実行回数が「目標実行回数2」以下</li>
+                        <li><strong>星1つ:</strong> 実行回数が「目標実行回数2」を超過</li>
+                    </ul>
+                </li>
+                <li><strong>ステージ評価の保存:</strong> 各ステージのクリア時の評価はローカルストレージに保存されます。</li>
+            </ul>
+            `
+        ];
+
+        const resetButton = document.getElementById('resetButton');
+        const gameGoalText = document.getElementById('gameGoalText');
+        const gameGoalImage = document.getElementById('gameGoalImage');
+        const evaluationStarsDisplay = document.getElementById('evaluationStars');
+        const practiceProgressDisplay = document.getElementById('practiceProgressDisplay');
+        const bookButton = document.getElementById('bookButton');
+        const stageButton = document.getElementById('stageButton');
+        const practiceModeButton = document.getElementById('practiceModeButton');
+        const leftPanArea = document.getElementById('leftPanArea');
+        const rightPanArea = document.getElementById('rightPanArea');
+        const executeButton = document.getElementById('executeButton');
+        const executionCountDisplay = document.getElementById('executionCountDisplay');
+        const coinArea = document.getElementById('coinArea');
+        const trashBinArea = document.getElementById('trashBinArea');
+        const discardButton = document.getElementById('discardButton');
+        const balanceArea = document.getElementById('balanceArea');
+        const electromagnetBoxElement = document.getElementById('electromagnetBox');
+        const electromagnetArea = document.getElementById('electromagnetArea');
+        const electromagnetInactivePlaceholder = document.getElementById('electromagnetInactivePlaceholder');
+        const miniBalanceArea = document.getElementById('miniBalanceArea');
+        const leftMiniPanArea = document.getElementById('leftMiniPanArea');
+        const rightMiniPanArea = document.getElementById('rightMiniPanArea');
+        const miniBalanceLabel = document.getElementById('miniBalanceLabel');
+        const miniBalanceInactivePlaceholder = document.getElementById('miniBalanceInactivePlaceholder');
+        const ruleWindow = document.getElementById('ruleWindow');
+        const ruleContent = document.getElementById('ruleContent');
+        const prevRulePageButton = document.getElementById('prevRulePage');
+        const nextRulePageButton = document.getElementById('nextRulePage');
+        const rulePageIndicator = document.getElementById('rulePageIndicator');
+        const closeRuleWindowButton = document.getElementById('closeRuleWindow');
+        const stageSelectWindow = document.getElementById('stageSelectWindow');
+        const stageList = document.getElementById('stageList');
+        const closeStageSelectWindowButton = document.getElementById('closeStageSelectWindow');
+        const practiceModeWindow = document.getElementById('practiceModeWindow');
+        const practiceStageList = document.getElementById('practiceStageList');
+        const startPracticeButton = document.getElementById('startPracticeButton');
+        const closePracticeModeWindowButton = document.getElementById('closePracticeModeWindow');
+        const stageDescriptionWindow = document.getElementById('stageDescriptionWindow');
+        const stageDescTitle = document.getElementById('stageDescTitle');
+        const stageDescDescription = document.getElementById('stageDescDescription');
+        const stageDescGoal = document.getElementById('stageDescGoal');
+        const stageDescStartButton = document.getElementById('stageDescStartButton');
+        const closeDescWindowButton = document.getElementById('closeDescWindowButton');
+        const stageDescImage = document.getElementById('stageDescImage');
+        const resultWindow = document.getElementById('resultWindow');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultStageInfo = document.getElementById('resultStageInfo');
+        const resultGoal = document.getElementById('resultGoal');
+        const resultStarsDisplay = document.getElementById('resultStars');
+        const resultExecutionCountDisplay = document.getElementById('resultExecutionCount');
+        const resultRetryButton = document.getElementById('resultRetryButton');
+        const resultRetryPracticeButton = document.getElementById('resultRetryPracticeButton');
+        const resultNextButton = document.getElementById('resultNextButton');
+        const resultBackButton = document.getElementById('resultBackButton');
+        const resultRestartButton = document.getElementById('resultRestartButton');
+        const resultEndPracticeButton = document.getElementById('resultEndPracticeButton');
+        const infoArea = document.getElementById('infoArea');
+        let nextButtonClickTimeout = null;
+        let retryButtonClickTimeout = null;
+        const coinAreaPlaceholderText = document.getElementById('coinAreaPlaceholderText');
+        const coinAreaPlaceholderIcon = document.getElementById('coinAreaPlaceholderIcon');
+        const leftPanPlaceholderText = document.getElementById('leftPanPlaceholderText');
+        const leftPanPlaceholderIcon = document.getElementById('leftPanPlaceholderIcon');
+        const leftPanMoonIcon = document.getElementById('leftPanMoonIcon');
+        const rightPanPlaceholderText = document.getElementById('rightPanPlaceholderText');
+        const rightPanPlaceholderIcon = document.getElementById('rightPanPlaceholderIcon');
+        const rightPanMoonIcon = document.getElementById('rightPanMoonIcon');
+        const trashBinPlaceholderText = document.getElementById('trashBinPlaceholderText');
+        const trashBinPlaceholderIcon = document.getElementById('trashBinPlaceholderIcon');
+        const leftMiniPanPlaceholderText = document.getElementById('leftMiniPanPlaceholderText');
+        const leftMiniPanPlaceholderIcon = document.getElementById('leftMiniPanPlaceholderIcon');
+        const leftMiniPanMoonIcon = document.getElementById('leftMiniPanMoonIcon');
+        const rightMiniPanPlaceholderText = document.getElementById('rightMiniPanPlaceholderText');
+        const rightMiniPanPlaceholderIcon = document.getElementById('rightMiniPanPlaceholderIcon');
+        const rightMiniPanMoonIcon = document.getElementById('rightMiniPanMoonIcon');
+
+        async function getStageEvaluations() {
+            if (!window.db || !window.isAuthReady || !window.userId || !window.firestoreCollection || !window.firestoreDoc || !window.firestoreGetDoc) {
+                return JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
+            }
+            const evaluationsRef = window.firestoreCollection(window.db, `artifacts/${__app_id}/users/${window.userId}/game_evaluations`);
+            try {
+                const docSnap = await window.firestoreGetDoc(window.firestoreDoc(evaluationsRef, 'user_evaluations'));
+                if (docSnap.exists()) {
+                    return docSnap.data().evaluations || {};
+                }
+            } catch (e) {
+                console.error("Error fetching stage evaluations from Firestore:", e);
+            }
+            return JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
+        }
+
+        async function saveStageEvaluation(stageNumber, stars) {
+            if (isInPracticeMode) return;
+            if (!window.db || !window.isAuthReady || !window.userId || !window.firestoreCollection || !window.firestoreDoc || !window.firestoreGetDoc || !window.firestoreSetDoc) {
+                let evaluations = JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
+                evaluations[stageNumber] = stars;
+                localStorage.setItem('stageEvaluations', JSON.stringify(evaluations));
+                window.highestClearedStage = Math.max(window.highestClearedStage, stageNumber);
+                return;
+            }
+            const evaluationsRef = window.firestoreCollection(window.db, `artifacts/${__app_id}/users/${window.userId}/game_evaluations`);
+            const docRef = window.firestoreDoc(evaluationsRef, 'user_evaluations');
+            try {
+                const docSnap = await window.firestoreGetDoc(docRef);
+                let evaluations = {};
+                if (docSnap.exists()) {
+                    evaluations = docSnap.data().evaluations || {};
+                }
+                if (!evaluations[stageNumber] || stars > evaluations[stageNumber]) {
+                    evaluations[stageNumber] = stars;
+                    await window.firestoreSetDoc(docRef, { evaluations }, { merge: true });
+                    window.highestClearedStage = Math.max(window.highestClearedStage, stageNumber);
+                }
+            } catch (e) {
+                console.error("Error saving stage evaluation to Firestore:", e);
+                let evaluations = JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
+                evaluations[stageNumber] = stars;
+                localStorage.setItem('stageEvaluations', JSON.stringify(evaluations));
+                window.highestClearedStage = Math.max(window.highestClearedStage, stageNumber);
+            }
+        }
+
+        async function loadHighestClearedStage() {
+            const evaluations = await getStageEvaluations();
+            window.highestClearedStage = Object.keys(evaluations).reduce((max, stageNum) => {
+                const num = parseInt(stageNum);
+                return num > max ? num : max;
+            }, 0);
+        }
+
+        async function initializeGame() {
+            const memoTextarea = document.getElementById('memoTextarea');
+            memoTextarea.value = localStorage.getItem('memoText') || '';
+            memoTextarea.addEventListener('input', () => {
+                localStorage.setItem('memoText', memoTextarea.value);
+            });
+            const userIdDisplay = document.createElement('div');
+            userIdDisplay.id = 'userIdDisplay';
+            userIdDisplay.className = 'absolute top-2 right-2 text-xs text-gray-400';
+            document.getElementById('gameContainer').appendChild(userIdDisplay);
+            userIdDisplay.textContent = `User ID: ${window.userId || 'N/A'}`;
+            await loadHighestClearedStage();
+            resetButton.addEventListener('click', resetGame);
+            executeButton.addEventListener('click', comparePans);
+            discardButton.addEventListener('click', checkResult);
+            bookButton.addEventListener('click', openRuleWindow);
+            stageButton.addEventListener('click', () => {
+                if (isInPracticeMode) endPracticeMode();
+                openStageSelectWindow();
+            });
+            gameGoalText.addEventListener('click', () => openStageDescriptionWindow(true));
+            gameGoalImage.addEventListener('click', () => openStageDescriptionWindow(true));
+            practiceModeButton.addEventListener('click', openPracticeModeWindow);
+            closeRuleWindowButton.addEventListener('click', closeRuleWindow);
+            prevRulePageButton.addEventListener('click', showPrevRulePage);
+            nextRulePageButton.addEventListener('click', showNextRulePage);
+            closeStageSelectWindowButton.addEventListener('click', closeStageSelectWindow);
+            closePracticeModeWindowButton.addEventListener('click', closePracticeModeWindow);
+            startPracticeButton.addEventListener('click', startPracticeMode);
+            stageDescStartButton.addEventListener('click', startGameForCurrentStage);
+            closeDescWindowButton.addEventListener('click', closeStageDescriptionWindow);
+            resultRetryButton.addEventListener('click', () => {
+                if (retryButtonClickTimeout) return;
+                retryButtonClickTimeout = setTimeout(() => { retryButtonClickTimeout = null; }, 500);
+                resultRetryButton.disabled = true;
+                resultRetryButton.classList.add('opacity-50', 'cursor-not-allowed');
+                closeResultWindow();
+                if (isInPracticeMode) startGameForCurrentStage();
+                else resetGame();
+            });
+            resultNextButton.addEventListener('click', () => {
+                if (nextButtonClickTimeout) return;
+                nextButtonClickTimeout = setTimeout(() => { nextButtonClickTimeout = null; }, 500);
+                resultNextButton.disabled = true;
+                resultNextButton.classList.add('opacity-50', 'cursor-not-allowed');
+                closeResultWindow();
+                if (isInPracticeMode) loadNextPracticeStage();
+                else loadNextStage();
+            });
+            resultEndPracticeButton.addEventListener('click', () => {
+                closeResultWindow();
+                endPracticeMode();
+            });
+            resultRetryPracticeButton.addEventListener('click', () => {
+                closeResultWindow();
+                openPracticeModeWindow();
+            });
+            resultBackButton.addEventListener('click', handleGoBackToGame);
+            resultRestartButton.addEventListener('click', handleRestartGame);
+            executeButton.classList.add('opacity-50', 'scale-105', 'cursor-not-allowed');
+            executeButton.classList.remove('hover:bg-green-700', 'hover:scale-110');
+            openStageSelectWindow();
+            updateSubAreaVisibility();
+            updateAreaPlaceholders();
+        }
+
+        function resetGame() {
+            if (!currentStage) return;
+            loadStage(currentStage.stageNumber);
+        }
+
+        function loadStage(stageNumber) {
+            const stage = stages.find(s => s.stageNumber === stageNumber);
+            if (!stage) return;
+            currentStage = stage;
+            closeStageSelectWindow();
+            openStageDescriptionWindow();
+            updateSubAreaVisibility();
+        }
+
+        function startGameForCurrentStage() {
+            if (!currentStage) return;
+            gameGoalText.textContent = `目標: ${currentStage.goalText}`;
+            executionCount = isInPracticeMode ? currentStage.targetExecutionCount1 : 0;
+            updateExecutionCountDisplay();
+            evaluationStars = 0;
+            resetPans();
+            resetMiniPans();
+            resetTrashBin();
+            resetElectromagnetBox();
+            generateCoins();
+            updateDiscardButtonState();
+            closeStageDescriptionWindow();
+            updateSubAreaVisibility();
+            updateAreaPlaceholders();
+        }
+
+        /**
+         * 修正点： dropX, dropY 引数を追加し、ドロップ座標に基づいてコインを再配置
+         */
+        function revertCoinToOriginalPosition(coinId, originalPosition, coinElement, dropX, dropY) {
+            const coinData = coins.find(c => c.id === coinId);
+            let targetParent = null;
+
+            // エリア名とDOM要素のマッピング
+            const areaMap = {
+                'leftPan': leftPanArea,
+                'rightPan': rightPanArea,
+                'leftMiniPan': leftMiniPanArea,
+                'rightMiniPan': rightMiniPanArea,
+                'trashBin': trashBinArea,
+                'electromagnetBox': electromagnetBoxElement,
+                'coinArea': coinArea
+            };
+
+            targetParent = areaMap[originalPosition] || coinArea;
+
+            // 正しい論理配列にコインIDを戻す
+            if (originalPosition === 'leftPan') balanceLeftPan.push(coinId);
+            else if (originalPosition === 'rightPan') balanceRightPan.push(coinId);
+            else if (originalPosition === 'leftMiniPan') miniBalanceLeftPan.push(coinId);
+            else if (originalPosition === 'rightMiniPan') miniBalanceRightPan.push(coinId);
+            else if (originalPosition === 'trashBin') trashBin.push(coinId);
+            else if (originalPosition === 'electromagnetBox') electromagnetBox.push(coinId);
+            
+            if (targetParent && coinElement) {
+                targetParent.appendChild(coinElement);
+                coinData.currentPosition = originalPosition;
+                coinElement.style.position = 'absolute';
+
+                const parentRect = targetParent.getBoundingClientRect();
+                const coinWidth = coinElement.offsetWidth;
+                const coinHeight = coinElement.offsetHeight;
+
+                // ドロップされた位置を親要素の相対座標に変換
+                let newLeft = dropX - shiftX - parentRect.left;
+                let newTop = dropY - shiftY - parentRect.top;
+
+                // 親要素の境界内に座標をクランプ（制限）する
+                const padding = (originalPosition === 'coinArea') ? 10 : 0;
+                newLeft = Math.max(padding, Math.min(newLeft, parentRect.width - coinWidth - padding));
+                newTop = Math.max(padding, Math.min(newTop, parentRect.height - coinHeight - padding));
+
+                coinElement.style.left = newLeft + 'px';
+                coinElement.style.top = newTop + 'px';
+            }
+        }
+
+        function onPointerDown(e) {
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
+            if (e.pointerType === 'touch' && !e.isPrimary) return;
+            const coinElement = e.target.closest('.coin');
+            if (!coinElement) return;
+
+            isPointerDown = true;
+            currentDraggedCoinElement = coinElement;
+            initialPointerX = e.clientX;
+            initialPointerY = e.clientY;
+            isDragging = false;
+
+            const coinId = parseInt(coinElement.dataset.coinId);
+            const coinData = coins.find(c => c.id === coinId);
+            originalCoinPositionOnDragStart = coinData.currentPosition;
+
+            const rect = coinElement.getBoundingClientRect();
+            shiftX = e.clientX - rect.left;
+            shiftY = e.clientY - rect.top;
+
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointercancel', onPointerUp);
+        }
+
+        function onPointerMove(e) {
+            if (!currentDraggedCoinElement || !isPointerDown) return;
+
+            const dx = Math.abs(e.clientX - initialPointerX);
+            const dy = Math.abs(e.clientY - initialPointerY);
+
+            if (!isDragging && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
+                isDragging = true;
+                e.preventDefault();
+
+                const coinId = parseInt(currentDraggedCoinElement.dataset.coinId);
+                const coinData = coins.find(c => c.id === coinId);
+
+                if (coinData.currentPosition === 'leftPan') balanceLeftPan = balanceLeftPan.filter(id => id !== coinData.id);
+                else if (coinData.currentPosition === 'rightPan') balanceRightPan = balanceRightPan.filter(id => id !== coinData.id);
+                else if (coinData.currentPosition === 'leftMiniPan') miniBalanceLeftPan = miniBalanceLeftPan.filter(id => id !== coinData.id);
+                else if (coinData.currentPosition === 'rightMiniPan') miniBalanceRightPan = miniBalanceRightPan.filter(id => id !== coinData.id);
+                else if (coinData.currentPosition === 'trashBin') trashBin = trashBin.filter(id => id !== coinData.id);
+                else if (coinData.currentPosition === 'electromagnetBox') electromagnetBox = electromagnetBox.filter(id => id !== coinData.id);
+                
+                if (coinData.currentPosition !== 'coinArea') {
+                    coinData.currentPosition = 'dragging';
+                }
+
+                currentDraggedCoinElement.style.position = 'fixed';
+                currentDraggedCoinElement.style.zIndex = '1000';
+                currentDraggedCoinElement.classList.add('dragging');
+                document.body.appendChild(currentDraggedCoinElement);
+            }
+
+            if (isDragging) {
+                e.preventDefault();
+                currentDraggedCoinElement.style.left = e.clientX - shiftX + 'px';
+                currentDraggedCoinElement.style.top = e.clientY - shiftY + 'px';
+            }
+        }
+
+        function onPointerUp(e) {
+            if (!currentDraggedCoinElement || !isPointerDown) return;
+
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointercancel', onPointerUp);
+
+            currentDraggedCoinElement.classList.remove('dragging');
+            currentDraggedCoinElement.style.zIndex = '';
+
+            const coinId = parseInt(currentDraggedCoinElement.dataset.coinId);
+            const coinData = coins.find(c => c.id === coinId);
+
+            if (isDragging) {
+                let droppedInArea = null;
+                const dropTargets = [
+                    { element: leftPanArea, name: 'leftPan' },
+                    { element: rightPanArea, name: 'rightPan' },
+                    { element: leftMiniPanArea, name: 'leftMiniPan' },
+                    { element: rightMiniPanArea, name: 'rightMiniPan' },
+                    { element: trashBinArea, name: 'trashBin' },
+                    { element: electromagnetBoxElement, name: 'electromagnetBox' },
+                    { element: coinArea, name: 'coinArea' }
+                ];
+
+                for (const target of dropTargets) {
+                    const targetRect = target.element.getBoundingClientRect();
+                    const coinRect = currentDraggedCoinElement.getBoundingClientRect();
+                    const overlapThreshold = 0.5;
+                    const overlapX = Math.max(0, Math.min(coinRect.right, targetRect.right) - Math.max(coinRect.left, targetRect.left));
+                    const overlapY = Math.max(0, Math.min(coinRect.bottom, targetRect.bottom) - Math.max(coinRect.top, targetRect.top));
+                    if ((overlapX * overlapY) / (coinRect.width * coinRect.height) >= overlapThreshold) {
+                        droppedInArea = target;
+                        break;
+                    }
+                }
+
+                if (droppedInArea) {
+                    const miniBalanceUnlocked = window.highestClearedStage >= 2;
+                    const miniBalanceActiveForStage = currentStage ? currentStage.miniBalanceActive : false;
+
+                    if ((droppedInArea.name === 'leftMiniPan' || droppedInArea.name === 'rightMiniPan') && miniBalanceUnlocked && !miniBalanceActiveForStage && !isInPracticeMode) {
+                        showTemporaryMessage("ミニ天秤は現在のステージでは使用できません。", "bg-yellow-500");
+                        revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
+                        return;
+                    }
+
+                    if ((droppedInArea.name === 'leftMiniPan' && miniBalanceLeftPan.length >= 1) || (droppedInArea.name === 'rightMiniPan' && miniBalanceRightPan.length >= 1)) {
+                        showTemporaryMessage("ミニ天秤の皿にはコインを1枚しか置けません。", "bg-red-500");
+                        revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
+                        return;
+                    }
+
+                    droppedInArea.element.appendChild(currentDraggedCoinElement);
+                    coinData.currentPosition = droppedInArea.name;
+                    
+                    const targetRect = droppedInArea.element.getBoundingClientRect();
+                    const coinWidth = currentDraggedCoinElement.offsetWidth;
+                    const coinHeight = currentDraggedCoinElement.offsetHeight;
+                    let newLeft = e.clientX - shiftX - targetRect.left;
+                    let newTop = e.clientY - shiftY - targetRect.top;
+                    const padding = (droppedInArea.name === 'coinArea') ? 10 : 0;
+                    newLeft = Math.max(padding, Math.min(newLeft, targetRect.width - coinWidth - padding));
+                    newTop = Math.max(padding, Math.min(newTop, targetRect.height - coinHeight - padding));
+
+                    currentDraggedCoinElement.style.position = 'absolute';
+                    currentDraggedCoinElement.style.left = newLeft + 'px';
+                    currentDraggedCoinElement.style.top = newTop + 'px';
+
+                    if (droppedInArea.name === 'leftPan') balanceLeftPan.push(coinId);
+                    else if (droppedInArea.name === 'rightPan') balanceRightPan.push(coinId);
+                    else if (droppedInArea.name === 'leftMiniPan') miniBalanceLeftPan.push(coinId);
+                    else if (droppedInArea.name === 'rightMiniPan') miniBalanceRightPan.push(coinId);
+                    else if (droppedInArea.name === 'trashBin') trashBin.push(coinId);
+                    else if (droppedInArea.name === 'electromagnetBox') electromagnetBox.push(coinId);
+                    
+                } else {
+                    /**
+                     * 修正点：ドロップ座標を渡して元のエリアの最近接座標に配置する
+                     */
+                    revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
+                }
+            } else {
+                const currentTime = Date.now();
+                const DOUBLE_TAP_THRESHOLD = 350;
+                if (coinData.lastTapTime && (currentTime - coinData.lastTapTime < DOUBLE_TAP_THRESHOLD)) {
+                    coinData.colorIndex = (coinData.colorIndex + 1) % coinColors.length;
+                    currentDraggedCoinElement.classList.remove(...coinColors);
+                    currentDraggedCoinElement.classList.add(coinColors[coinData.colorIndex]);
+                    coinData.lastTapTime = 0;
+                } else {
+                    coinData.lastTapTime = currentTime;
+                }
+            }
+
+            originalCoinPositionOnDragStart = null;
+            isDragging = false;
+            isPointerDown = false;
+            currentDraggedCoinElement = null;
+
+            resetPanVisuals();
+            updateDiscardButtonState();
+            updateElectromagnetBoxPlaceholder();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
+        }
+
+
+        function generateCoins() {
+            Array.from(coinArea.children).forEach(child => {
+                if (child.classList.contains('coin')) child.remove();
+            });
+            coins = [];
+            let totalCoinsToGenerate = currentStage.generateCoinArray.reduce((sum, config) => sum + config.count, 0);
+            for (let i = 0; i < totalCoinsToGenerate; i++) {
+                coins.push({
+                    id: i + 1,
+                    weight: coinTypes.normalCoin.weight,
+                    material: coinTypes.normalCoin.material,
+                    type: 'normalCoin',
+                    currentPosition: 'coinArea',
+                    colorIndex: 0,
+                    lastTapTime: 0
+                });
+            }
+            let availableCoinIndices = Array.from({ length: totalCoinsToGenerate }, (_, i) => i);
+            for (const config of currentStage.generateCoinArray) {
+                if (config.type === 'normalCoin') continue;
+                for (let i = 0; i < config.count; i++) {
+                    if (availableCoinIndices.length === 0) break;
+                    const randomIndexInPool = Math.floor(Math.random() * availableCoinIndices.length);
+                    const coinIndexToModify = availableCoinIndices.splice(randomIndexInPool, 1)[0];
+                    const coinToModify = coins[coinIndexToModify];
+                    const typeDef = coinTypes[config.type];
+                    if (typeDef) {
+                        coinToModify.type = config.type;
+                        coinToModify.weight = typeDef.weight;
+                        coinToModify.material = typeDef.material;
+                    }
+                }
+            }
+            const coinAreaRect = coinArea.getBoundingClientRect();
+            const coinWidth = 50, coinHeight = 50, padding = 10;
+            coins.forEach((coinData, index) => {
+                const coinElement = document.createElement('div');
+                coinElement.id = `coin-${coinData.id}`;
+                coinElement.className = `coin ${coinColors[coinData.colorIndex]}`;
+                coinElement.textContent = coinData.id;
+                coinElement.dataset.coinId = coinData.id;
+                coinElement.style.position = 'absolute';
+                const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                coinElement.addEventListener('pointerdown', onPointerDown);
+                coinArea.appendChild(coinElement);
+            });
+            updateElectromagnetBoxPlaceholder();
+            updateAreaPlaceholders();
+        }
+
+        function resetPans() {
+            coins.filter(c => c.currentPosition === 'leftPan' || c.currentPosition === 'rightPan').forEach(coinData => {
+                const coinElement = document.getElementById(`coin-${coinData.id}`);
+                if (coinElement) {
+                    coinArea.appendChild(coinElement);
+                    coinData.currentPosition = 'coinArea';
+                    coinElement.style.position = 'absolute';
+                    const coinAreaRect = coinArea.getBoundingClientRect();
+                    const coinWidth = 50, coinHeight = 50, padding = 10;
+                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+                    const index = coins.indexOf(coinData);
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                }
+            });
+            balanceLeftPan = [];
+            balanceRightPan = [];
+            resetPanVisuals();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
+        }
+
+        function resetMiniPans() {
+            coins.filter(c => c.currentPosition === 'leftMiniPan' || c.currentPosition === 'rightMiniPan').forEach(coinData => {
+                const coinElement = document.getElementById(`coin-${coinData.id}`);
+                if (coinElement) {
+                    coinArea.appendChild(coinElement);
+                    coinData.currentPosition = 'coinArea';
+                    coinElement.style.position = 'absolute';
+                    const coinAreaRect = coinArea.getBoundingClientRect();
+                    const coinWidth = 50, coinHeight = 50, padding = 10;
+                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+                    const index = coins.indexOf(coinData);
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                }
+            });
+            miniBalanceLeftPan = [];
+            miniBalanceRightPan = [];
+            resetPanVisuals();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
+        }
+
+        function resetTrashBin() {
+            coins.filter(c => c.currentPosition === 'trashBin').forEach(coinData => {
+                const coinElement = document.getElementById(`coin-${coinData.id}`);
+                if (coinElement) {
+                    coinArea.appendChild(coinElement);
+                    coinData.currentPosition = 'coinArea';
+                    coinElement.style.position = 'absolute';
+                    const coinAreaRect = coinArea.getBoundingClientRect();
+                    const coinWidth = 50, coinHeight = 50, padding = 10;
+                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+                    const index = coins.indexOf(coinData);
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                }
+            });
+            trashBin = [];
+            updateDiscardButtonState();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
+        }
+
+        function resetElectromagnetBox() {
+            coins.filter(c => c.currentPosition === 'electromagnetBox').forEach(coinData => {
+                const coinElement = document.getElementById(`coin-${coinData.id}`);
+                if (coinElement) {
+                    coinArea.appendChild(coinElement);
+                    coinData.currentPosition = 'coinArea';
+                    const coinAreaRect = coinArea.getBoundingClientRect();
+                    const coinWidth = 50, coinHeight = 50, padding = 10;
+                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+                    const index = coins.indexOf(coinData);
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    coinElement.style.position = 'absolute';
+                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                }
+            });
+            electromagnetBox = [];
+            Array.from(electromagnetBoxElement.children).forEach(child => {
+                if (child.classList.contains('coin')) child.remove();
+            });
+            updateElectromagnetBoxPlaceholder();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
+        }
+
+        function updateElectromagnetBoxPlaceholder() {
+            let placeholderSpan = electromagnetBoxElement.querySelector('span');
+            if (electromagnetBox.length === 0) {
+                if (!placeholderSpan) {
+                    placeholderSpan = document.createElement('span');
+                    placeholderSpan.className = 'text-gray-600 text-sm';
+                    placeholderSpan.textContent = 'コインをここへ';
+                    electromagnetBoxElement.appendChild(placeholderSpan);
+                }
+            } else {
+                if (placeholderSpan) placeholderSpan.remove();
+            }
+        }
+
+        function resetElectromagnetVisual() {
+            electromagnetBoxElement.classList.remove('bg-orange-100', 'border-orange-300', 'border-yellow-300');
+            electromagnetBoxElement.classList.add('bg-yellow-100', 'border-gray-300');
+            electromagnetBoxElement.style.transform = 'translateX(0)';
+        }
+
+        function applyElectromagnetEffect() {
+            const isElectromagnetActiveInStage = currentStage ? currentStage.electromagnetActive : false;
+            if (!isElectromagnetActiveInStage || !currentStage.electromagnetMaterials || currentStage.electromagnetMaterials.length === 0) {
+                resetElectromagnetVisual();
+                return;
+            }
+            const hasMagneticCoin = electromagnetBox.some(coinId => {
+                const coin = coins.find(c => c.id === coinId);
+                return coin && currentStage.electromagnetMaterials.includes(coin.material);
+            });
+            const iconContainer = electromagnetArea.querySelector('.flex.flex-col.items-center.justify-around.h-full.ml-2');
+            const iconContainerWidth = iconContainer ? iconContainer.offsetWidth + 8 : 0;
+            const moveAmount = electromagnetArea.clientWidth - electromagnetBoxElement.offsetWidth - iconContainerWidth;
+            electromagnetBoxElement.classList.remove('border-gray-300', 'border-yellow-300', 'border-orange-300');
+            if (hasMagneticCoin) {
+                electromagnetBoxElement.classList.add('bg-orange-100', 'border-orange-300');
+                electromagnetBoxElement.classList.remove('bg-yellow-100');
+                electromagnetBoxElement.style.transform = `translateX(${moveAmount}px)`;
+            } else {
+                electromagnetBoxElement.classList.remove('bg-orange-100');
+                electromagnetBoxElement.classList.add('bg-yellow-100', 'border-yellow-300');
+                electromagnetBoxElement.style.transform = 'translateX(0)';
+            }
+        }
+
+        function resetPanVisuals() {
+            leftPanArea.style.transform = 'translateY(0)';
+            rightPanArea.style.transform = 'translateY(0)';
+            leftPanArea.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200');
+            rightPanArea.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200');
+            leftPanArea.classList.add('border-gray-300');
+            rightPanArea.classList.add('border-gray-300');
+            leftMiniPanArea.style.transform = 'translateY(0)';
+            rightMiniPanArea.style.transform = 'translateY(0)';
+            leftMiniPanArea.classList.remove('pan-highlight', 'border-blue-300', 'border-sky-200');
+            rightMiniPanArea.classList.remove('pan-highlight', 'border-blue-300', 'border-sky-200');
+            leftMiniPanArea.classList.add('border-gray-300');
+            rightMiniPanArea.classList.add('border-gray-300');
+            if (isInPracticeMode && executionCount <= 0) {
+                executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
+                executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
+            } else {
+                executeButton.disabled = false;
+                executeButton.classList.remove('opacity-50', 'scale-105', 'cursor-not-allowed', 'bg-red-500');
+                executeButton.classList.add('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
+            }
+        }
+
+        function updateExecutionCountDisplay() {
+            executionCountDisplay.textContent = executionCount;
+        }
+
+        function updateEvaluationStarsDisplay() {
+            evaluationStarsDisplay.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const starIcon = document.createElement('i');
+                starIcon.className = `fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}`;
+                evaluationStarsDisplay.appendChild(starIcon);
+            }
+        }
+
+        function updatePracticeProgressDisplay() {
+            practiceProgressDisplay.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const boxIcon = document.createElement('i');
+                boxIcon.className = 'fas text-2xl';
+                if (i < currentPracticeStageIndex) boxIcon.classList.add('fa-box', 'text-green-400');
+                else if (i === currentPracticeStageIndex) boxIcon.classList.add('fa-box-open', 'text-blue-400');
+                else boxIcon.classList.add('fa-box', 'text-gray-400');
+                practiceProgressDisplay.appendChild(boxIcon);
+            }
+        }
+
+        function updateDiscardButtonState() {
+            if (trashBin.length > 0) {
+                discardButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                discardButton.disabled = false;
+            } else {
+                discardButton.classList.add('opacity-50', 'cursor-not-allowed');
+                discardButton.disabled = true;
+            }
+        }
+
+        function comparePans() {
+            const mainPansReady = balanceLeftPan.length > 0 && balanceRightPan.length > 0;
+            const miniPansReady = miniBalanceLeftPan.length > 0 && miniBalanceRightPan.length > 0;
+            const electromagnetBoxHasCoins = electromagnetBox.length > 0;
+            let tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
+            const electromagnetUnlocked = tempHighestClearedStage >= 1;
+            const miniBalanceUnlocked = tempHighestClearedStage >= 2;
+            const electromagnetActiveForStage = currentStage.electromagnetActive;
+            const miniBalanceActiveForStage = currentStage.miniBalanceActive;
+            const canUseElectromagnet = electromagnetUnlocked && electromagnetActiveForStage;
+            const canUseMiniBalance = miniBalanceUnlocked && miniBalanceActiveForStage;
+
+            if (!mainPansReady && (balanceLeftPan.length > 0 || balanceRightPan.length > 0)) {
+                showTemporaryMessage("メイン天秤の両方の皿にコインを置いてください！", "bg-red-500");
+                return;
+            }
+            if (canUseMiniBalance && !miniPansReady && (miniBalanceLeftPan.length > 0 || miniBalanceRightPan.length > 0)) {
+                showTemporaryMessage("ミニ天秤の両方の皿にコインを置いてください！", "bg-red-500");
+                return;
+            }
+
+            const anyValidActionPossible = mainPansReady || (canUseMiniBalance && miniPansReady) || (canUseElectromagnet && electromagnetBoxHasCoins);
+            if (!anyValidActionPossible) {
+                showTemporaryMessage("比較できるコインがありません！", "bg-red-500");
+                return;
+            }
+
+            if (isInPracticeMode && executionCount <= 0) {
+                showTemporaryMessage("これ以上比較できません", "bg-red-500");
+                return;
+            }
+
+            if (mainPansReady) {
+                const leftWeight = balanceLeftPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
+                const rightWeight = balanceRightPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
+                const panMoveAmount = '20px';
+                leftPanArea.classList.add('pan-highlight', 'border-green-300');
+                rightPanArea.classList.add('pan-highlight', 'border-green-300');
+                leftPanArea.classList.remove('border-gray-300');
+                rightPanArea.classList.remove('border-gray-300');
+                if (leftWeight > rightWeight) {
+                    leftPanArea.style.transform = `translateY(${panMoveAmount})`;
+                    rightPanArea.style.transform = `translateY(-${panMoveAmount})`;
+                } else if (rightWeight > leftWeight) {
+                    leftPanArea.style.transform = `translateY(-${panMoveAmount})`;
+                    rightPanArea.style.transform = `translateY(${panMoveAmount})`;
+                } else {
+                    leftPanArea.style.transform = 'translateY(0)';
+                    rightPanArea.style.transform = 'translateY(0)';
+                    leftPanArea.classList.replace('border-green-300', 'border-sky-200');
+                    rightPanArea.classList.replace('border-green-300', 'border-sky-200');
+                }
+            }
+
+            if (canUseMiniBalance && miniPansReady) {
+                const miniLeftWeight = miniBalanceLeftPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
+                const miniRightWeight = miniBalanceRightPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
+                const panMoveAmount = '10px';
+                leftMiniPanArea.classList.add('pan-highlight', 'border-blue-300');
+                rightMiniPanArea.classList.add('pan-highlight', 'border-blue-300');
+                leftMiniPanArea.classList.remove('border-gray-300');
+                rightMiniPanArea.classList.remove('border-gray-300');
+                if (miniLeftWeight > miniRightWeight) {
+                    leftMiniPanArea.style.transform = `translateY(${panMoveAmount})`;
+                    rightMiniPanArea.style.transform = `translateY(-${panMoveAmount})`;
+                } else if (miniRightWeight > miniLeftWeight) {
+                    leftMiniPanArea.style.transform = `translateY(-${panMoveAmount})`;
+                    rightMiniPanArea.style.transform = `translateY(${panMoveAmount})`;
+                } else {
+                    leftMiniPanArea.style.transform = 'translateY(0)';
+                    rightMiniPanArea.style.transform = 'translateY(0)';
+                    leftMiniPanArea.classList.replace('border-blue-300', 'border-sky-200');
+                    rightMiniPanArea.classList.replace('border-blue-300', 'border-sky-200');
+                }
+            }
+
+            if (canUseElectromagnet) applyElectromagnetEffect();
+
+            if (isInPracticeMode) executionCount--; else executionCount++;
+            updateExecutionCountDisplay();
+            
+            if (isInPracticeMode && executionCount <= 0) {
+                executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
+                executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function checkResult() {
+            if (!currentStage) return;
+            const trashCoinTypes = {};
+            trashBin.forEach(id => {
+                const coin = coins.find(c => c.id === id);
+                if (coin) trashCoinTypes[coin.type] = (trashCoinTypes[coin.type] || 0) + 1;
+            });
+            const targetTotalCount = currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0);
+            let isCorrect = trashBin.length === targetTotalCount;
+            if (isCorrect) {
+                const targetCoinCounts = {};
+                currentStage.targetCoinArray.forEach(t => targetCoinCounts[t.type] = t.count);
+                for (const type in targetCoinCounts) {
+                    if (trashCoinTypes[type] !== targetCoinCounts[type]) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+                for (const type in trashCoinTypes) {
+                    if (!targetCoinCounts[type]) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isCorrect) {
+                if (isInPracticeMode) {
+                    if (executionCount >= currentStage.targetExecutionCount1) evaluationStars = 3;
+                    else if (executionCount >= currentStage.targetExecutionCount2) evaluationStars = 2;
+                    else evaluationStars = 1;
+                } else {
+                    if (executionCount <= currentStage.targetExecutionCount1) evaluationStars = 3;
+                    else if (executionCount <= currentStage.targetExecutionCount2) evaluationStars = 2;
+                    else evaluationStars = 1;
+                }
+                saveStageEvaluation(currentStage.stageNumber, evaluationStars);
+                updateEvaluationStarsDisplay();
+                updateSubAreaVisibility();
+                showResultWindow(true);
+            } else {
+                showResultWindow(false);
+            }
+        }
+
+        function openRuleWindow() {
+            ruleWindow.classList.remove('hidden');
+            showRulePage(currentRulePageIndex);
+        }
+
+        function closeRuleWindow() {
+            ruleWindow.classList.add('hidden');
+        }
+
+        function showRulePage(index) {
+            if (index < 0 || index >= rulePages.length) return;
+            currentRulePageIndex = index;
+            ruleContent.innerHTML = rulePages[index];
+            rulePageIndicator.textContent = `${index + 1} / ${rulePages.length}`;
+            prevRulePageButton.disabled = index === 0;
+            prevRulePageButton.classList.toggle('opacity-50', index === 0);
+            nextRulePageButton.disabled = index === rulePages.length - 1;
+            nextRulePageButton.classList.toggle('opacity-50', index === rulePages.length - 1);
+        }
+
+        function showPrevRulePage() {
+            showRulePage(currentRulePageIndex - 1);
+        }
+
+        function showNextRulePage() {
+            showRulePage(currentRulePageIndex + 1);
+        }
+
+        async function openStageSelectWindow() {
+            stageSelectWindow.classList.remove('hidden');
+            stageList.innerHTML = '<p class="text-center text-gray-600 flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>ステージを読み込み中...";</p>';
+            await loadHighestClearedStage();
+            const stageEvaluations = await getStageEvaluations();
+            stageList.innerHTML = '';
+            stages.forEach(stage => {
+                const stageDiv = document.createElement('div');
+                stageDiv.className = 'rounded-lg p-4 shadow-md transition duration-200 ease-in-out flex flex-row items-center justify-between';
+                stageDiv.dataset.stageNumber = stage.stageNumber;
+                const isLocked = stage.stageNumber > window.highestClearedStage + 1;
+                let stageClass = '', clickHandler = null, lockIcon = '', starsHtml = '';
+                if (isLocked) {
+                    stageClass = 'bg-gray-200 text-gray-500 cursor-not-allowed';
+                    lockIcon = '<i class="fas fa-lock ml-2 text-gray-400"></i>';
+                } else {
+                    stageClass = 'bg-blue-100 hover:bg-blue-200 cursor-pointer';
+                    clickHandler = () => loadStage(stage.stageNumber);
+                    starsHtml = Array(3).fill('<i class="far fa-star text-gray-400"></i>').map((star, i) => {
+                        return i < (stageEvaluations[stage.stageNumber] || 0) ? '<i class="fas fa-star text-yellow-500"></i>' : star;
+                    }).join('');
+                }
+                stageDiv.classList.add(...stageClass.split(' '));
+                if (clickHandler) stageDiv.addEventListener('click', clickHandler);
+                stageDiv.innerHTML = `
+                    <div class="w-1/4 flex justify-center items-center"><span class="text-xl font-bold text-blue-800 text-center">${stage.stageNumber}</span></div>
+                    <div class="w-2/4 flex items-center"><span class="text-gray-700">${stage.goalText}</span></div>
+                    <div class="w-1/4 flex justify-end items-center"><span class="text-xl text-yellow-400">${starsHtml}</span>${lockIcon}</div>`;
+                stageList.appendChild(stageDiv);
+            });
+        }
+
+        function closeStageSelectWindow() {
+            stageSelectWindow.classList.add('hidden');
+        }
+
+        function getRandomStagesForPractice(count) {
+            const playableStages = stages.filter(s => s.stageNumber > 0).sort((a, b) => a.stageNumber - b.stageNumber);
+            const selectedStages = [];
+            let availableStagesPool = [...playableStages];
+            const percentages = [1, 0.8, 0.6, 0.4, 0.2];
+            for (let i = 0; i < count; i++) {
+                let currentPool = i === 0 ? [...availableStagesPool] : availableStagesPool.slice(Math.floor(availableStagesPool.length * (1 - percentages[i])));
+                if (currentPool.length === 0) currentPool = [...availableStagesPool];
+                if (currentPool.length === 0) break;
+                const randomIndex = Math.floor(Math.random() * currentPool.length);
+                const selectedStage = currentPool[randomIndex];
+                selectedStages.push(selectedStage);
+                availableStagesPool = availableStagesPool.filter(s => s.stageNumber !== selectedStage.stageNumber);
+            }
+            return selectedStages;
+        }
+
+        function openPracticeModeWindow() {
+            closeStageSelectWindow();
+            practiceModeWindow.classList.remove('hidden');
+            practiceStageList.innerHTML = '';
+            practiceModeStages = getRandomStagesForPractice(5);
+            currentPracticeStageIndex = 0;
+        }
+
+        function closePracticeModeWindow() {
+            practiceModeWindow.classList.add('hidden');
+        }
+
+        function startPracticeMode() {
+            isInPracticeMode = true;
+            closePracticeModeWindow();
+            infoArea.classList.replace('from-blue-600', 'from-red-600');
+            infoArea.classList.replace('to-blue-800', 'to-red-800');
+            executionCountDisplay.classList.replace('text-white', 'text-red-500');
+            updatePracticeProgressDisplay();
+            if (practiceModeStages.length > 0) {
+                currentStage = practiceModeStages[currentPracticeStageIndex];
+                startGameForCurrentStage();
+            } else {
+                showTemporaryMessage("実践モードのステージがありません。", "bg-red-500");
+                endPracticeMode();
+            }
+        }
+
+        function loadNextPracticeStage() {
+            currentPracticeStageIndex++;
+            if (currentPracticeStageIndex < practiceModeStages.length) {
+                currentStage = practiceModeStages[currentPracticeStageIndex];
+                startGameForCurrentStage();
+                updatePracticeProgressDisplay();
+            } else {
+                showTemporaryMessage("実践モードを全てクリアしました！", "bg-green-500");
+                endPracticeMode();
+            }
+        }
+
+        function endPracticeMode() {
+            isInPracticeMode = false;
+            practiceModeStages = [];
+            currentPracticeStageIndex = 0;
+            infoArea.classList.replace('from-red-600', 'from-blue-600');
+            infoArea.classList.replace('to-red-800', 'to-blue-800');
+            executionCountDisplay.classList.replace('text-red-500', 'text-white');
+            updateSubAreaVisibility();
+            openStageSelectWindow();
+        }
+
+        function openStageDescriptionWindow(fromGoalText = false) {
+            if (!currentStage) {
+                showTemporaryMessage("ステージが選択されていません。", "bg-red-500");
+                return;
+            }
+            stageDescTitle.textContent = `ステージ ${currentStage.stageNumber}`;
+            stageDescDescription.innerHTML = currentStage.stageDescription;
+            stageDescGoal.textContent = `目標: ${currentStage.goalText}`;
+            stageDescriptionWindow.classList.remove('hidden');
+            if (fromGoalText) {
+                stageDescStartButton.classList.add('hidden');
+                closeDescWindowButton.classList.remove('hidden');
+            } else {
+                stageDescStartButton.classList.remove('hidden');
+                closeDescWindowButton.classList.add('hidden');
+            }
+        }
+
+        function closeStageDescriptionWindow() {
+            stageDescriptionWindow.classList.add('hidden');
+        }
+
+        function showResultWindow(isCorrect) {
+            resultWindow.classList.remove('hidden');
+            resultStageInfo.textContent = `ステージ ${currentStage.stageNumber}`;
+            resultGoal.textContent = currentStage.goalText;
+            if (isInPracticeMode) resultExecutionCountDisplay.classList.add('hidden');
+            else {
+                resultExecutionCountDisplay.classList.remove('hidden');
+                resultExecutionCountDisplay.textContent = `実行数: ${executionCount}`;
+            }
+
+            if (isCorrect) {
+                resultTitle.textContent = "正解！";
+                resultTitle.classList.replace('text-red-600', 'text-green-600');
+                if (isInPracticeMode) {
+                    resultStarsDisplay.innerHTML = '';
+                    for (let i = 0; i < 5; i++) {
+                        const boxIcon = document.createElement('i');
+                        boxIcon.className = `fas mx-1 ${i < currentPracticeStageIndex ? 'fa-box text-green-400 text-5xl' : i === currentPracticeStageIndex ? 'fa-box-open text-green-400 text-6xl' : 'fa-box text-gray-400 text-5xl'}`;
+                        resultStarsDisplay.appendChild(boxIcon);
+                    }
+                } else {
+                    resultStarsDisplay.innerHTML = Array(3).fill('').map((_, i) => `<i class="fas fa-star text-yellow-400 ${i < evaluationStars ? '' : 'opacity-30'}"></i>`).join('');
+                }
+                resultRetryButton.classList.add('hidden');
+                resultRetryPracticeButton.classList.add('hidden');
+                if (isInPracticeMode && currentPracticeStageIndex === practiceModeStages.length - 1) {
+                    resultNextButton.classList.add('hidden');
+                    resultEndPracticeButton.classList.remove('hidden');
+                    resultEndPracticeButton.disabled = false;
+                    resultEndPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultRetryPracticeButton.classList.remove('hidden');
+                    resultRetryPracticeButton.textContent = '最初から';
+                    resultRetryPracticeButton.disabled = false;
+                    resultRetryPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else if (isInPracticeMode) {
+                    resultNextButton.classList.remove('hidden');
+                    resultNextButton.disabled = false;
+                    resultNextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultEndPracticeButton.classList.add('hidden');
+                    resultRetryPracticeButton.classList.remove('hidden');
+                    resultRetryPracticeButton.textContent = '最初から';
+                    resultRetryPracticeButton.disabled = false;
+                    resultRetryPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else if (currentStage.stageNumber < Math.max(...stages.map(s => s.stageNumber))) {
+                    resultNextButton.classList.remove('hidden');
+                    resultNextButton.disabled = false;
+                    resultNextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultRetryButton.classList.remove('hidden');
+                    resultRetryButton.textContent = 'もう一度';
+                    resultRetryButton.disabled = false;
+                    resultRetryButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    resultNextButton.classList.add('hidden');
+                    resultRetryButton.classList.remove('hidden');
+                    resultRetryButton.textContent = 'もう一度';
+                    resultRetryButton.disabled = false;
+                    resultRetryButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                resultBackButton.classList.add('hidden');
+                resultRestartButton.classList.add('hidden');
+            } else {
+                resultTitle.textContent = "不正解...";
+                resultTitle.classList.replace('text-green-600', 'text-red-600');
+                if (isInPracticeMode) {
+                    resultStarsDisplay.innerHTML = '';
+                    for (let i = 0; i < 5; i++) {
+                        const boxIcon = document.createElement('i');
+                        boxIcon.className = `fas mx-1 ${i < currentPracticeStageIndex ? 'fa-box text-green-400 text-5xl' : i === currentPracticeStageIndex ? 'fa-box-open text-red-400 text-6xl' : 'fa-box text-gray-400 text-5xl'}`;
+                        resultStarsDisplay.appendChild(boxIcon);
+                    }
+                } else {
+                    resultStarsDisplay.innerHTML = '<i class="far fa-frown text-gray-400 text-6xl"></i>';
+                }
+                resultRetryButton.classList.add('hidden');
+                resultNextButton.classList.add('hidden');
+                resultRetryPracticeButton.classList.add('hidden');
+                if (isInPracticeMode) {
+                    resultEndPracticeButton.classList.remove('hidden');
+                    resultEndPracticeButton.disabled = false;
+                    resultEndPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultBackButton.classList.add('hidden');
+                    resultRestartButton.classList.remove('hidden');
+                    resultRestartButton.textContent = '最初から';
+                    resultRestartButton.disabled = false;
+                    resultRestartButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    resultBackButton.classList.remove('hidden');
+                    resultBackButton.disabled = false;
+                    resultBackButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultRestartButton.classList.remove('hidden');
+                    resultRestartButton.textContent = 'もう一度';
+                    resultRestartButton.disabled = false;
+                    resultRestartButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resultEndPracticeButton.classList.add('hidden');
+                }
+            }
+        }
+
+        function closeResultWindow() {
+            resultWindow.classList.add('hidden');
+        }
+
+        function loadNextStage() {
+            const maxStageNumber = Math.max(...stages.map(s => s.stageNumber));
+            if (currentStage.stageNumber === maxStageNumber) {
+                showTemporaryMessage("すべてのステージをクリアしました！", "bg-blue-500");
+                openStageSelectWindow();
+            } else {
+                const currentStageIndex = stages.findIndex(s => s.stageNumber === currentStage.stageNumber);
+                if (currentStageIndex !== -1 && currentStageIndex + 1 < stages.length) {
+                    loadStage(stages[currentStageIndex + 1].stageNumber);
+                } else {
+                    showTemporaryMessage("次のステージが見つかりません。", "bg-yellow-500");
+                    openStageSelectWindow();
+                }
+            }
+        }
+
+        function handleGoBackToGame() {
+            closeResultWindow();
+            resetPanVisuals();
+            if (!isInPracticeMode) {
+                executionCount++;
+                updateExecutionCountDisplay();
+            }
+            if (isInPracticeMode && executionCount <= 0) {
+                executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
+                executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function handleRestartGame() {
+            closeResultWindow();
+            if (isInPracticeMode) openPracticeModeWindow();
+            else resetGame();
+        }
+
+        async function updateSubAreaVisibility() {
+            if (!currentStage) {
+                electromagnetArea.classList.add('hidden');
+                miniBalanceArea.classList.add('hidden');
+                return;
+            }
+            let tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
+            const electromagnetUnlocked = tempHighestClearedStage >= 1;
+            const miniBalanceUnlocked = tempHighestClearedStage >= 2;
+            if (electromagnetUnlocked) {
+                electromagnetArea.classList.remove('hidden');
+                if (currentStage.electromagnetActive) {
+                    electromagnetBoxElement.classList.remove('hidden');
+                    electromagnetInactivePlaceholder.classList.add('hidden');
+                } else {
+                    electromagnetBoxElement.classList.add('hidden');
+                    electromagnetInactivePlaceholder.classList.remove('hidden');
+                }
+            } else {
+                electromagnetArea.classList.add('hidden');
+            }
+
+            if (miniBalanceUnlocked) {
+                miniBalanceArea.classList.remove('hidden');
+                if (currentStage.miniBalanceActive) {
+                    miniBalanceArea.querySelector('#leftMiniPanArea').classList.remove('hidden');
+                    miniBalanceArea.querySelector('#rightMiniPanArea').classList.remove('hidden');
+                    miniBalanceArea.querySelector('#miniBalanceLabel').classList.remove('hidden');
+                    miniBalanceArea.querySelector('.fa-balance-scale').classList.remove('hidden');
+                    miniBalanceInactivePlaceholder.classList.add('hidden');
+                } else {
+                    miniBalanceArea.querySelector('#leftMiniPanArea').classList.add('hidden');
+                    miniBalanceArea.querySelector('#rightMiniPanArea').classList.add('hidden');
+                    miniBalanceArea.querySelector('#miniBalanceLabel').classList.add('hidden');
+                    miniBalanceArea.querySelector('.fa-balance-scale').classList.add('hidden');
+                    miniBalanceInactivePlaceholder.classList.remove('hidden');
+                }
+            } else {
+                miniBalanceArea.classList.add('hidden');
+            }
+
+            if (isInPracticeMode) {
+                evaluationStarsDisplay.classList.add('hidden');
+                practiceProgressDisplay.classList.remove('hidden');
+                updatePracticeProgressDisplay();
+            } else {
+                evaluationStarsDisplay.classList.remove('hidden');
+                practiceProgressDisplay.classList.add('hidden');
+                updateEvaluationStarsDisplay();
+            }
+        }
+
+        function updateAreaPlaceholders() {
+            const toggle = (area, hasContent) => {
+                const text = document.getElementById(`${area}PlaceholderText`);
+                const icon = document.getElementById(`${area}PlaceholderIcon`);
+                const moonIcon = document.getElementById(`${area}MoonIcon`);
+                if (text) text.classList.toggle('hidden', hasContent);
+                if (icon && area !== 'coinArea' && area !== 'trashBin') icon.classList.toggle('hidden', hasContent);
+                if (moonIcon) moonIcon.classList.toggle('hidden', hasContent);
+            };
+
+            toggle('coinArea', coins.some(c => c.currentPosition === 'coinArea'));
+            toggle('leftPan', balanceLeftPan.length > 0);
+            toggle('rightPan', balanceRightPan.length > 0);
+            toggle('trashBin', trashBin.length > 0);
+            toggle('leftMiniPan', miniBalanceLeftPan.length > 0 || !currentStage || !currentStage.miniBalanceActive || window.highestClearedStage < 2);
+            toggle('rightMiniPan', miniBalanceRightPan.length > 0 || !currentStage || !currentStage.miniBalanceActive || window.highestClearedStage < 2);
+        }
+
+        function showTemporaryMessage(message, bgColorClass) {
+            const messageBox = document.createElement('div');
+            messageBox.className = `fixed bottom-8 left-1/2 transform -translate-x-1/2 ${bgColorClass} text-white py-3 px-6 rounded-full shadow-lg text-lg font-semibold z-[10000] transition-all duration-500 ease-out opacity-0 translate-y-10`;
+            messageBox.textContent = message;
+            document.body.appendChild(messageBox);
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-0', 'translate-y-10');
+                messageBox.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100', 'translate-y-0');
+                messageBox.classList.add('opacity-0', 'translate-y-10');
+                messageBox.addEventListener('transitionend', () => messageBox.remove());
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
