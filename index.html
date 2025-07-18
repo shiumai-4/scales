@@ -10,37 +10,47 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overflow: hidden; /* Prevent scrolling */
-            touch-action: none; /* Prevent browser touch actions like scrolling/zooming on body */
-            display: flex; /* Flexbox for body to center the main game container */
+            overflow: auto;
+            /* touch-action: none; Removed to allow touch scrolling */
+            display: flex;
             justify-content: center; /* Center horizontally */
-            align-items: center; /* Center vertically */
-            min-height: 100vh; /* Ensure body takes full viewport height */
-            background-color: #f3f4f6; /* Light gray background for body */
+            align-items: center; /* Align to top to allow scrolling down */
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            padding: 2rem; /* Add some breathing room */
+            box-sizing: border-box; /* Include padding in height/width calculation */
+            flex-direction: column;
+        }
+        @media (max-width: 720px) {
+            body {
+                flex-direction: column;
+                align-items: flex-start; /* 左揃えに上書き */
+            }
         }
         /* Main game container styling */
         #gameContainer {
-            max-width: 1280px; /* Max width as requested */
-            max-height: 720px; /* Max height as requested */
-            min-width: 720px;  /* Min width as requested */
-            min-height: 480px; /* Min height as requested */
-            width: 100%; /* Take full width up to max-width */
-            aspect-ratio: 4 / 3; /* << 修正点: 縦横比を4:3に設定 */
+            max-width: 1280px;
+            max-height: 720px;
+            min-width: 720px;
+            min-height: 480px;
+            width: 100%;
+            aspect-ratio: 4 / 3;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Hide overflow if content exceeds max-height */
-            border-radius: 1rem; /* Rounded corners */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Large shadow */
-            background-color: #ffffff; /* White background for the container */
-            position: relative; /* For positioning userIdDisplay */
+            /* overflow: hidden; Removed to allow its content to be visible */
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            position: relative;
+            flex-shrink: 0; /* Prevent container from shrinking */
         }
 
         .pan-container {
             transition: transform 0.5s ease-in-out;
-            position: relative; /* Ensure pans are relative for absolute coin positioning */
+            position: relative;
         }
         .pan-highlight {
-            background-color: rgba(255, 255, 0, 0.2); /* Yellowish highlight */
+            background-color: rgba(255, 255, 0, 0.2);
         }
         .coin {
             width: 50px;
@@ -55,40 +65,36 @@
             transition: background-color 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: 2px solid rgba(0, 0, 0, 0.1);
-            /* Ensure coins are above other elements like trash icon/pan text */
             z-index: 10;
-            /* Prevent text selection during drag */
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none;    /* Firefox */
-            -ms-user-select: none;     /* IE 10+ */
-            user-select: none;         /* Standard */
-            touch-action: none; /* Crucial for touch dragging on the element itself */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
         }
-        .coin-blue { background-color: #60a5fa; color: white; } /* Blue-500 */
-        .coin-red { background-color: #ef4444; color: white; } /* Red-500 */
-        .coin-yellow { background-color: #facc15; color: black; } /* Yellow-400 */
-        .coin-green { background-color: #22c55e; color: white; } /* Green-500 */
+        .coin-blue { background-color: #60a5fa; color: white; }
+        .coin-red { background-color: #ef4444; color: white; }
+        .coin-yellow { background-color: #facc15; color: black; }
+        .coin-green { background-color: #22c55e; color: white; }
 
-        /* Custom scrollbar for memo area */
-        .memo-area textarea { /* This rule is now effectively for the textarea directly */
-            resize: vertical; /* Allow vertical resizing */
+        .memo-textarea {
+            resize: vertical;
             scrollbar-width: thin;
             scrollbar-color: #9ca3af #e5e7eb;
         }
-        .memo-area textarea::-webkit-scrollbar {
+        .memo-textarea::-webkit-scrollbar {
             width: 8px;
         }
-        .memo-area textarea::-webkit-scrollbar-track {
+        .memo-textarea::-webkit-scrollbar-track {
             background: #e5e7eb;
             border-radius: 10px;
         }
-        .memo-area textarea::-webkit-scrollbar-thumb {
+        .memo-textarea::-webkit-scrollbar-thumb {
             background-color: #9ca3af;
             border-radius: 10px;
             border: 2px solid #e5e7eb;
         }
 
-        /* Modal styling */
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 100;
@@ -97,21 +103,19 @@
             z-index: 101;
         }
 
-        /* Styles for the coin being dragged */
         .coin.dragging {
-            position: fixed; /* Use fixed to allow dragging over all elements */
+            position: fixed;
             z-index: 1000;
             cursor: grabbing;
         }
 
-        /* Coin Area: Now a relative container for absolutely positioned coins */
         #coinArea {
             position: relative;
-            overflow: hidden; /* Hide coins that are dragged outside */
+            overflow: hidden;
         }
 
         .trash-bin-area {
-            position: relative; /* Ensure trash bin is relative for absolute coin positioning */
+            position: relative;
         }
         .trash-bin-area .text-gray-500 {
             z-index: 1;
@@ -121,49 +125,64 @@
         }
 
         .electromagnet-box {
-            transition: transform 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out; /* Added color transitions */
-            position: relative; /* Ensure electromagnet box is relative for absolute coin positioning */
+            transition: transform 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out;
+            position: relative;
         }
 
-        /* Memo Area Container for Icon */
         .memo-container {
             position: relative;
-            flex-shrink: 0; /* Prevent it from shrinking */
-            min-height: 80px; /* Match textarea min-height */
-            max-height: 200px; /* Match textarea max-height */
-            display: flex; /* To center textarea vertically if needed */
-            align-items: stretch; /* Make textarea fill height */
+            display: flex;
+            align-items: stretch;
         }
         .memo-container .memo-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1; /* Below textarea */
-        }
-        .memo-container textarea {
-            position: relative;
-            z-index: 2; /* Above icon */
-            background-color: transparent; /* Make textarea background transparent to show icon */
+            pointer-events: none;
         }
 
-        /* Add pointer-events: none to all placeholder texts and icons */
+
         #leftPanPlaceholderText, #leftPanPlaceholderIcon, #leftPanMoonIcon,
         #rightPanPlaceholderText, #rightPanPlaceholderIcon, #rightPanMoonIcon,
         #coinAreaPlaceholderText, #coinAreaPlaceholderIcon,
         #trashBinPlaceholderText, #trashBinPlaceholderIcon,
         #leftMiniPanPlaceholderText, #leftMiniPanPlaceholderIcon, #leftMiniPanMoonIcon,
         #rightMiniPanPlaceholderText, #rightMiniPanPlaceholderIcon, #rightMiniPanMoonIcon,
-        #miniBalanceLabel, /* Added mini balance label */
-        #electromagnetBox .fa-magnet, /* Electromagnet icon */
-        .memo-container .memo-icon {
+        #miniBalanceLabel,
+        #electromagnetBox .fa-magnet {
             pointer-events: none;
         }
 
-        /* Set z-index for mini balance icon to be behind pans */
         #miniBalanceArea .fa-balance-scale {
             pointer-events: none;
-            z-index: -1; /* Changed from 0 to -1 */
+            z-index: -1;
+        }
+
+        /* Footer specific styles - カスタムした文字色、フォントサイズ、マージン */
+        .main-footer {
+            width: 100%;
+            max-width: 600px; /* Match form container width */
+            text-align: center;
+            color: #374151; /* 例：文字色をより濃く */
+            margin-top: 40px; /* 例：フォームとの上マージンを調整 */
+        }
+        .main-footer a {
+            color: #d8971d; /* 例：リンクの色 */
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+            font-size: 0.9rem; /* 例：リンクのフォントサイズを調整 */
+        }
+        .main-footer a:hover {
+            color: #8a580c; /* 例：ホバー時 */
+            text-decoration: underline;
+        }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+            gap: 1.25rem; /* 例：リンク間の間隔を広げる */
+            margin-bottom: 0.2rem; /* 例：リンク行と著作権表示間のマージンを調整 */
+        }
+        .footer-copyright {
+            font-size: 0.8rem; /* 例：著作権表示のフォントサイズを小さく */
+            color: #6b7280; /* グレーテキストは維持 */
         }
     </style>
 </head>
@@ -187,7 +206,7 @@
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
             document.addEventListener('DOMContentLoaded', async () => {
                 try {
@@ -258,7 +277,7 @@
                     <div id="leftPanArea" class="left-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="leftPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 left-2">左の皿</div>
                         <i id="leftPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
-                        <i id="leftPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                        <i id="leftPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform [rotate:-70deg]"></i>
                     </div>
                     <div class="execution-info flex flex-col items-center justify-center h-full w-1/3 space-y-4">
                         <button id="executeButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300 text-sm md:text-base">
@@ -271,18 +290,24 @@
                     <div id="rightPanArea" class="right-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="rightPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 right-2">右の皿</div>
                         <i id="rightPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
-                        <i id="rightPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                        <i id="rightPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform [rotate:-70deg]"></i>
                     </div>
                 </div>
 
                 <div id="coinArea" class="coin-area bg-white rounded-xl shadow-lg px-2 py-4 h-[35%] overflow-y-auto">
-                    <div id="coinAreaPlaceholderText" class="text-gray-500 text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">コインをここに生成します</div>
+                    <div id="coinAreaPlaceholderText" class="text-gray-500 text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2　z-10">コイン置き場</div>
                     <i id="coinAreaPlaceholderIcon" class="fas fa-box-open text-gray-300 text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
                 </div>
 
-                <div class="memo-container w-full rounded-xl shadow-lg bg-blue-50 border border-gray-300 flex-shrink overflow-y-auto" style="min-height: 80px; max-height: 200px;">
-                    <i class="fas fa-clipboard text-pink-200 text-8xl opacity-50 memo-icon"></i>
-                    <textarea id="memoTextarea" class="w-full p-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 rounded-lg" placeholder="ここにメモを入力してください..." style="min-height: 100%; max-height: 100%; background-color: transparent;"></textarea>
+                <div id="memoAreaWrapper" class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 flex-shrink-0">
+                    <div class="memo-container w-full md:w-1/2 rounded-xl shadow-lg bg-blue-50 border border-gray-300" style="min-height: 50px; max-height: 200px;">
+                        <i id="memoIcon1" class="memo-icon fas fa-clipboard text-pink-200 text-6xl opacity-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="z-index: 1;"></i>
+                        <textarea id="memoTextarea1" class="memo-textarea w-full p-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 rounded-lg" placeholder="メモ 1..." style="min-height: 100%; max-height: 100%; background-color: transparent; position: relative; z-index: 2;"></textarea>
+                    </div>
+                    <div class="memo-container w-full md:w-1/2 rounded-xl shadow-lg bg-blue-50 border border-gray-300" style="min-height: 50px; max-height: 200px;">
+                        <i id="memoIcon2" class="memo-icon fas fa-clipboard text-indigo-200 text-6xl opacity-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="z-index: 1;"></i>
+                        <textarea id="memoTextarea2" class="memo-textarea w-full p-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 rounded-lg" placeholder="メモ 2..." style="min-height: 100%; max-height: 100%; background-color: transparent; position: relative; z-index: 2;"></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -304,14 +329,14 @@
                     <div id="leftMiniPanArea" class="left-mini-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="leftMiniPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 left-2">左のミニ皿</div>
                         <i id="leftMiniPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
-                        <i id="leftMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                        <i id="leftMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform [rotate:-70deg]"></i>
                     </div>
                     <div id="miniBalanceLabel" class="text-gray-500 text-sm">ミニ天秤</div>
                     <i class="fas fa-balance-scale text-sky-200 text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
                     <div id="rightMiniPanArea" class="right-mini-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="rightMiniPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 right-2">右のミニ皿</div>
                         <i id="rightMiniPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
-                        <i id="rightMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform rotate-45"></i>
+                        <i id="rightMiniPanMoonIcon" class="fas fa-moon text-white text-4xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform [rotate:-70deg]"></i>
                     </div>
                     <div id="miniBalanceInactivePlaceholder" class="absolute inset-0 bg-gray-200 rounded-xl shadow-inner flex items-center justify-center text-gray-500 text-lg hidden">
                         <i class="fas fa-wrench text-4xl"></i>
@@ -421,6 +446,18 @@
             </div>
         </div>
     </div>
+
+    <footer class="main-footer">
+        <div class="footer-links">
+            <a href="https://example.com/portfolio" target="_blank" rel="noopener noreferrer">作品集</a>
+            <a href="https://x.com/your_x_handle" target="_blank" rel="noopener noreferrer">X</a>
+            <a href="https://example.com/privacy-policy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
+            <a href="https://example.com/contact" target="_blank" rel="noopener noreferrer">お問い合わせ</a>
+        </div>
+        <div class="footer-copyright">
+            ©︎2025 shiumai_4. All rights reserved.
+        </div>
+    </footer>
 
     <script type="module">
         document.addEventListener('firebaseReady', () => {
@@ -675,22 +712,6 @@
         const infoArea = document.getElementById('infoArea');
         let nextButtonClickTimeout = null;
         let retryButtonClickTimeout = null;
-        const coinAreaPlaceholderText = document.getElementById('coinAreaPlaceholderText');
-        const coinAreaPlaceholderIcon = document.getElementById('coinAreaPlaceholderIcon');
-        const leftPanPlaceholderText = document.getElementById('leftPanPlaceholderText');
-        const leftPanPlaceholderIcon = document.getElementById('leftPanPlaceholderIcon');
-        const leftPanMoonIcon = document.getElementById('leftPanMoonIcon');
-        const rightPanPlaceholderText = document.getElementById('rightPanPlaceholderText');
-        const rightPanPlaceholderIcon = document.getElementById('rightPanPlaceholderIcon');
-        const rightPanMoonIcon = document.getElementById('rightPanMoonIcon');
-        const trashBinPlaceholderText = document.getElementById('trashBinPlaceholderText');
-        const trashBinPlaceholderIcon = document.getElementById('trashBinPlaceholderIcon');
-        const leftMiniPanPlaceholderText = document.getElementById('leftMiniPanPlaceholderText');
-        const leftMiniPanPlaceholderIcon = document.getElementById('leftMiniPanPlaceholderIcon');
-        const leftMiniPanMoonIcon = document.getElementById('leftMiniPanMoonIcon');
-        const rightMiniPanPlaceholderText = document.getElementById('rightMiniPanPlaceholderText');
-        const rightMiniPanPlaceholderIcon = document.getElementById('rightMiniPanPlaceholderIcon');
-        const rightMiniPanMoonIcon = document.getElementById('rightMiniPanMoonIcon');
 
         async function getStageEvaluations() {
             if (!window.db || !window.isAuthReady || !window.userId || !window.firestoreCollection || !window.firestoreDoc || !window.firestoreGetDoc) {
@@ -747,12 +768,30 @@
             }, 0);
         }
 
+        function setupMemoArea(textareaId, iconId, storageKey) {
+            const memoTextarea = document.getElementById(textareaId);
+            const memoIcon = document.getElementById(iconId);
+
+            function updateMemoIconVisibility() {
+                if (memoIcon && memoTextarea) {
+                    memoIcon.classList.toggle('hidden', memoTextarea.value.length > 0);
+                }
+            }
+
+            if(memoTextarea){
+                memoTextarea.value = localStorage.getItem(storageKey) || '';
+                memoTextarea.addEventListener('input', () => {
+                    localStorage.setItem(storageKey, memoTextarea.value);
+                    updateMemoIconVisibility();
+                });
+                updateMemoIconVisibility();
+            }
+        }
+
         async function initializeGame() {
-            const memoTextarea = document.getElementById('memoTextarea');
-            memoTextarea.value = localStorage.getItem('memoText') || '';
-            memoTextarea.addEventListener('input', () => {
-                localStorage.setItem('memoText', memoTextarea.value);
-            });
+            setupMemoArea('memoTextarea1', 'memoIcon1', 'memoText1');
+            setupMemoArea('memoTextarea2', 'memoIcon2', 'memoText2');
+
             const userIdDisplay = document.createElement('div');
             userIdDisplay.id = 'userIdDisplay';
             userIdDisplay.className = 'absolute top-2 right-2 text-xs text-gray-400';
@@ -844,34 +883,23 @@
             updateAreaPlaceholders();
         }
 
-        /**
-         * 修正点： dropX, dropY 引数を追加し、ドロップ座標に基づいてコインを再配置
-         */
         function revertCoinToOriginalPosition(coinId, originalPosition, coinElement, dropX, dropY) {
             const coinData = coins.find(c => c.id === coinId);
-            let targetParent = null;
-
-            // エリア名とDOM要素のマッピング
             const areaMap = {
-                'leftPan': leftPanArea,
-                'rightPan': rightPanArea,
-                'leftMiniPan': leftMiniPanArea,
-                'rightMiniPan': rightMiniPanArea,
-                'trashBin': trashBinArea,
-                'electromagnetBox': electromagnetBoxElement,
+                'leftPan': leftPanArea, 'rightPan': rightPanArea,
+                'leftMiniPan': leftMiniPanArea, 'rightMiniPan': rightMiniPanArea,
+                'trashBin': trashBinArea, 'electromagnetBox': electromagnetBoxElement,
                 'coinArea': coinArea
             };
+            const targetParent = areaMap[originalPosition] || coinArea;
 
-            targetParent = areaMap[originalPosition] || coinArea;
-
-            // 正しい論理配列にコインIDを戻す
             if (originalPosition === 'leftPan') balanceLeftPan.push(coinId);
             else if (originalPosition === 'rightPan') balanceRightPan.push(coinId);
             else if (originalPosition === 'leftMiniPan') miniBalanceLeftPan.push(coinId);
             else if (originalPosition === 'rightMiniPan') miniBalanceRightPan.push(coinId);
             else if (originalPosition === 'trashBin') trashBin.push(coinId);
             else if (originalPosition === 'electromagnetBox') electromagnetBox.push(coinId);
-            
+
             if (targetParent && coinElement) {
                 targetParent.appendChild(coinElement);
                 coinData.currentPosition = originalPosition;
@@ -881,11 +909,9 @@
                 const coinWidth = coinElement.offsetWidth;
                 const coinHeight = coinElement.offsetHeight;
 
-                // ドロップされた位置を親要素の相対座標に変換
                 let newLeft = dropX - shiftX - parentRect.left;
                 let newTop = dropY - shiftY - parentRect.top;
 
-                // 親要素の境界内に座標をクランプ（制限）する
                 const padding = (originalPosition === 'coinArea') ? 10 : 0;
                 newLeft = Math.max(padding, Math.min(newLeft, parentRect.width - coinWidth - padding));
                 newTop = Math.max(padding, Math.min(newTop, parentRect.height - coinHeight - padding));
@@ -939,7 +965,7 @@
                 else if (coinData.currentPosition === 'rightMiniPan') miniBalanceRightPan = miniBalanceRightPan.filter(id => id !== coinData.id);
                 else if (coinData.currentPosition === 'trashBin') trashBin = trashBin.filter(id => id !== coinData.id);
                 else if (coinData.currentPosition === 'electromagnetBox') electromagnetBox = electromagnetBox.filter(id => id !== coinData.id);
-                
+
                 if (coinData.currentPosition !== 'coinArea') {
                     coinData.currentPosition = 'dragging';
                 }
@@ -973,12 +999,9 @@
             if (isDragging) {
                 let droppedInArea = null;
                 const dropTargets = [
-                    { element: leftPanArea, name: 'leftPan' },
-                    { element: rightPanArea, name: 'rightPan' },
-                    { element: leftMiniPanArea, name: 'leftMiniPan' },
-                    { element: rightMiniPanArea, name: 'rightMiniPan' },
-                    { element: trashBinArea, name: 'trashBin' },
-                    { element: electromagnetBoxElement, name: 'electromagnetBox' },
+                    { element: leftPanArea, name: 'leftPan' }, { element: rightPanArea, name: 'rightPan' },
+                    { element: leftMiniPanArea, name: 'leftMiniPan' }, { element: rightMiniPanArea, name: 'rightMiniPan' },
+                    { element: trashBinArea, name: 'trashBin' }, { element: electromagnetBoxElement, name: 'electromagnetBox' },
                     { element: coinArea, name: 'coinArea' }
                 ];
 
@@ -1001,42 +1024,34 @@
                     if ((droppedInArea.name === 'leftMiniPan' || droppedInArea.name === 'rightMiniPan') && miniBalanceUnlocked && !miniBalanceActiveForStage && !isInPracticeMode) {
                         showTemporaryMessage("ミニ天秤は現在のステージでは使用できません。", "bg-yellow-500");
                         revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
-                        return;
-                    }
-
-                    if ((droppedInArea.name === 'leftMiniPan' && miniBalanceLeftPan.length >= 1) || (droppedInArea.name === 'rightMiniPan' && miniBalanceRightPan.length >= 1)) {
+                    } else if ((droppedInArea.name === 'leftMiniPan' && miniBalanceLeftPan.length >= 1) || (droppedInArea.name === 'rightMiniPan' && miniBalanceRightPan.length >= 1)) {
                         showTemporaryMessage("ミニ天秤の皿にはコインを1枚しか置けません。", "bg-red-500");
                         revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
-                        return;
+                    } else {
+                        droppedInArea.element.appendChild(currentDraggedCoinElement);
+                        coinData.currentPosition = droppedInArea.name;
+
+                        const targetRect = droppedInArea.element.getBoundingClientRect();
+                        const coinWidth = currentDraggedCoinElement.offsetWidth;
+                        const coinHeight = currentDraggedCoinElement.offsetHeight;
+                        let newLeft = e.clientX - shiftX - targetRect.left;
+                        let newTop = e.clientY - shiftY - targetRect.top;
+                        const padding = (droppedInArea.name === 'coinArea') ? 10 : 0;
+                        newLeft = Math.max(padding, Math.min(newLeft, targetRect.width - coinWidth - padding));
+                        newTop = Math.max(padding, Math.min(newTop, targetRect.height - coinHeight - padding));
+
+                        currentDraggedCoinElement.style.position = 'absolute';
+                        currentDraggedCoinElement.style.left = newLeft + 'px';
+                        currentDraggedCoinElement.style.top = newTop + 'px';
+
+                        if (droppedInArea.name === 'leftPan') balanceLeftPan.push(coinId);
+                        else if (droppedInArea.name === 'rightPan') balanceRightPan.push(coinId);
+                        else if (droppedInArea.name === 'leftMiniPan') miniBalanceLeftPan.push(coinId);
+                        else if (droppedInArea.name === 'rightMiniPan') miniBalanceRightPan.push(coinId);
+                        else if (droppedInArea.name === 'trashBin') trashBin.push(coinId);
+                        else if (droppedInArea.name === 'electromagnetBox') electromagnetBox.push(coinId);
                     }
-
-                    droppedInArea.element.appendChild(currentDraggedCoinElement);
-                    coinData.currentPosition = droppedInArea.name;
-                    
-                    const targetRect = droppedInArea.element.getBoundingClientRect();
-                    const coinWidth = currentDraggedCoinElement.offsetWidth;
-                    const coinHeight = currentDraggedCoinElement.offsetHeight;
-                    let newLeft = e.clientX - shiftX - targetRect.left;
-                    let newTop = e.clientY - shiftY - targetRect.top;
-                    const padding = (droppedInArea.name === 'coinArea') ? 10 : 0;
-                    newLeft = Math.max(padding, Math.min(newLeft, targetRect.width - coinWidth - padding));
-                    newTop = Math.max(padding, Math.min(newTop, targetRect.height - coinHeight - padding));
-
-                    currentDraggedCoinElement.style.position = 'absolute';
-                    currentDraggedCoinElement.style.left = newLeft + 'px';
-                    currentDraggedCoinElement.style.top = newTop + 'px';
-
-                    if (droppedInArea.name === 'leftPan') balanceLeftPan.push(coinId);
-                    else if (droppedInArea.name === 'rightPan') balanceRightPan.push(coinId);
-                    else if (droppedInArea.name === 'leftMiniPan') miniBalanceLeftPan.push(coinId);
-                    else if (droppedInArea.name === 'rightMiniPan') miniBalanceRightPan.push(coinId);
-                    else if (droppedInArea.name === 'trashBin') trashBin.push(coinId);
-                    else if (droppedInArea.name === 'electromagnetBox') electromagnetBox.push(coinId);
-                    
                 } else {
-                    /**
-                     * 修正点：ドロップ座標を渡して元のエリアの最近接座標に配置する
-                     */
                     revertCoinToOriginalPosition(coinId, originalCoinPositionOnDragStart, currentDraggedCoinElement, e.clientX, e.clientY);
                 }
             } else {
@@ -1064,7 +1079,6 @@
             updateAreaPlaceholders();
         }
 
-
         function generateCoins() {
             Array.from(coinArea.children).forEach(child => {
                 if (child.classList.contains('coin')) child.remove();
@@ -1073,13 +1087,8 @@
             let totalCoinsToGenerate = currentStage.generateCoinArray.reduce((sum, config) => sum + config.count, 0);
             for (let i = 0; i < totalCoinsToGenerate; i++) {
                 coins.push({
-                    id: i + 1,
-                    weight: coinTypes.normalCoin.weight,
-                    material: coinTypes.normalCoin.material,
-                    type: 'normalCoin',
-                    currentPosition: 'coinArea',
-                    colorIndex: 0,
-                    lastTapTime: 0
+                    id: i + 1, weight: 10, material: 'steel', type: 'normalCoin',
+                    currentPosition: 'coinArea', colorIndex: 0, lastTapTime: 0
                 });
             }
             let availableCoinIndices = Array.from({ length: totalCoinsToGenerate }, (_, i) => i);
@@ -1087,14 +1096,11 @@
                 if (config.type === 'normalCoin') continue;
                 for (let i = 0; i < config.count; i++) {
                     if (availableCoinIndices.length === 0) break;
-                    const randomIndexInPool = Math.floor(Math.random() * availableCoinIndices.length);
-                    const coinIndexToModify = availableCoinIndices.splice(randomIndexInPool, 1)[0];
+                    const coinIndexToModify = availableCoinIndices.splice(Math.floor(Math.random() * availableCoinIndices.length), 1)[0];
                     const coinToModify = coins[coinIndexToModify];
                     const typeDef = coinTypes[config.type];
                     if (typeDef) {
-                        coinToModify.type = config.type;
-                        coinToModify.weight = typeDef.weight;
-                        coinToModify.material = typeDef.material;
+                        Object.assign(coinToModify, { type: config.type, weight: typeDef.weight, material: typeDef.material });
                     }
                 }
             }
@@ -1119,13 +1125,12 @@
             updateAreaPlaceholders();
         }
 
-        function resetPans() {
-            coins.filter(c => c.currentPosition === 'leftPan' || c.currentPosition === 'rightPan').forEach(coinData => {
-                const coinElement = document.getElementById(`coin-${coinData.id}`);
+        function resetArea(areaName, logicalArray) {
+            coins.filter(c => c.currentPosition === areaName).forEach(coinData => {
+                 const coinElement = document.getElementById(`coin-${coinData.id}`);
                 if (coinElement) {
                     coinArea.appendChild(coinElement);
                     coinData.currentPosition = 'coinArea';
-                    coinElement.style.position = 'absolute';
                     const coinAreaRect = coinArea.getBoundingClientRect();
                     const coinWidth = 50, coinHeight = 50, padding = 10;
                     const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
@@ -1136,78 +1141,34 @@
                     coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
                 }
             });
-            balanceLeftPan = [];
-            balanceRightPan = [];
+            return [];
+        }
+
+        function resetPans() {
+            balanceLeftPan = resetArea('leftPan', balanceLeftPan);
+            balanceRightPan = resetArea('rightPan', balanceRightPan);
             resetPanVisuals();
             resetElectromagnetVisual();
             updateAreaPlaceholders();
         }
 
         function resetMiniPans() {
-            coins.filter(c => c.currentPosition === 'leftMiniPan' || c.currentPosition === 'rightMiniPan').forEach(coinData => {
-                const coinElement = document.getElementById(`coin-${coinData.id}`);
-                if (coinElement) {
-                    coinArea.appendChild(coinElement);
-                    coinData.currentPosition = 'coinArea';
-                    coinElement.style.position = 'absolute';
-                    const coinAreaRect = coinArea.getBoundingClientRect();
-                    const coinWidth = 50, coinHeight = 50, padding = 10;
-                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
-                    const index = coins.indexOf(coinData);
-                    const row = Math.floor(index / cols);
-                    const col = index % cols;
-                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
-                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
-                }
-            });
-            miniBalanceLeftPan = [];
-            miniBalanceRightPan = [];
+            miniBalanceLeftPan = resetArea('leftMiniPan', miniBalanceLeftPan);
+            miniBalanceRightPan = resetArea('rightMiniPan', miniBalanceRightPan);
             resetPanVisuals();
             resetElectromagnetVisual();
             updateAreaPlaceholders();
         }
 
         function resetTrashBin() {
-            coins.filter(c => c.currentPosition === 'trashBin').forEach(coinData => {
-                const coinElement = document.getElementById(`coin-${coinData.id}`);
-                if (coinElement) {
-                    coinArea.appendChild(coinElement);
-                    coinData.currentPosition = 'coinArea';
-                    coinElement.style.position = 'absolute';
-                    const coinAreaRect = coinArea.getBoundingClientRect();
-                    const coinWidth = 50, coinHeight = 50, padding = 10;
-                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
-                    const index = coins.indexOf(coinData);
-                    const row = Math.floor(index / cols);
-                    const col = index % cols;
-                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
-                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
-                }
-            });
-            trashBin = [];
+            trashBin = resetArea('trashBin', trashBin);
             updateDiscardButtonState();
             resetElectromagnetVisual();
             updateAreaPlaceholders();
         }
 
         function resetElectromagnetBox() {
-            coins.filter(c => c.currentPosition === 'electromagnetBox').forEach(coinData => {
-                const coinElement = document.getElementById(`coin-${coinData.id}`);
-                if (coinElement) {
-                    coinArea.appendChild(coinElement);
-                    coinData.currentPosition = 'coinArea';
-                    const coinAreaRect = coinArea.getBoundingClientRect();
-                    const coinWidth = 50, coinHeight = 50, padding = 10;
-                    const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
-                    const index = coins.indexOf(coinData);
-                    const row = Math.floor(index / cols);
-                    const col = index % cols;
-                    coinElement.style.position = 'absolute';
-                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
-                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
-                }
-            });
-            electromagnetBox = [];
+            electromagnetBox = resetArea('electromagnetBox', electromagnetBox);
             Array.from(electromagnetBoxElement.children).forEach(child => {
                 if (child.classList.contains('coin')) child.remove();
             });
@@ -1222,7 +1183,7 @@
                 if (!placeholderSpan) {
                     placeholderSpan = document.createElement('span');
                     placeholderSpan.className = 'text-gray-600 text-sm';
-                    placeholderSpan.textContent = 'コインをここへ';
+                    placeholderSpan.textContent = '電磁石エリア';
                     electromagnetBoxElement.appendChild(placeholderSpan);
                 }
             } else {
@@ -1237,18 +1198,17 @@
         }
 
         function applyElectromagnetEffect() {
-            const isElectromagnetActiveInStage = currentStage ? currentStage.electromagnetActive : false;
-            if (!isElectromagnetActiveInStage || !currentStage.electromagnetMaterials || currentStage.electromagnetMaterials.length === 0) {
+            const isActive = currentStage?.electromagnetActive;
+            if (!isActive || !currentStage.electromagnetMaterials?.length) {
                 resetElectromagnetVisual();
                 return;
             }
-            const hasMagneticCoin = electromagnetBox.some(coinId => {
-                const coin = coins.find(c => c.id === coinId);
+            const hasMagneticCoin = electromagnetBox.some(id => {
+                const coin = coins.find(c => c.id === id);
                 return coin && currentStage.electromagnetMaterials.includes(coin.material);
             });
-            const iconContainer = electromagnetArea.querySelector('.flex.flex-col.items-center.justify-around.h-full.ml-2');
-            const iconContainerWidth = iconContainer ? iconContainer.offsetWidth + 8 : 0;
-            const moveAmount = electromagnetArea.clientWidth - electromagnetBoxElement.offsetWidth - iconContainerWidth;
+            const iconContainer = electromagnetArea.querySelector('.flex.flex-col');
+            const moveAmount = electromagnetArea.clientWidth - electromagnetBoxElement.offsetWidth - (iconContainer?.offsetWidth + 8 || 0);
             electromagnetBoxElement.classList.remove('border-gray-300', 'border-yellow-300', 'border-orange-300');
             if (hasMagneticCoin) {
                 electromagnetBoxElement.classList.add('bg-orange-100', 'border-orange-300');
@@ -1262,18 +1222,12 @@
         }
 
         function resetPanVisuals() {
-            leftPanArea.style.transform = 'translateY(0)';
-            rightPanArea.style.transform = 'translateY(0)';
-            leftPanArea.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200');
-            rightPanArea.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200');
-            leftPanArea.classList.add('border-gray-300');
-            rightPanArea.classList.add('border-gray-300');
-            leftMiniPanArea.style.transform = 'translateY(0)';
-            rightMiniPanArea.style.transform = 'translateY(0)';
-            leftMiniPanArea.classList.remove('pan-highlight', 'border-blue-300', 'border-sky-200');
-            rightMiniPanArea.classList.remove('pan-highlight', 'border-blue-300', 'border-sky-200');
-            leftMiniPanArea.classList.add('border-gray-300');
-            rightMiniPanArea.classList.add('border-gray-300');
+            [leftPanArea, rightPanArea, leftMiniPanArea, rightMiniPanArea].forEach(pan => {
+                pan.style.transform = 'translateY(0)';
+                pan.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200', 'border-blue-300');
+                pan.classList.add('border-gray-300');
+            });
+
             if (isInPracticeMode && executionCount <= 0) {
                 executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
                 executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
@@ -1289,59 +1243,42 @@
         }
 
         function updateEvaluationStarsDisplay() {
-            evaluationStarsDisplay.innerHTML = '';
-            for (let i = 0; i < 3; i++) {
-                const starIcon = document.createElement('i');
-                starIcon.className = `fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}`;
-                evaluationStarsDisplay.appendChild(starIcon);
-            }
+            evaluationStarsDisplay.innerHTML = Array(3).fill(0).map((_, i) =>
+                `<i class="fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}"></i>`
+            ).join('');
         }
 
         function updatePracticeProgressDisplay() {
-            practiceProgressDisplay.innerHTML = '';
-            for (let i = 0; i < 5; i++) {
-                const boxIcon = document.createElement('i');
-                boxIcon.className = 'fas text-2xl';
-                if (i < currentPracticeStageIndex) boxIcon.classList.add('fa-box', 'text-green-400');
-                else if (i === currentPracticeStageIndex) boxIcon.classList.add('fa-box-open', 'text-blue-400');
-                else boxIcon.classList.add('fa-box', 'text-gray-400');
-                practiceProgressDisplay.appendChild(boxIcon);
-            }
+            practiceProgressDisplay.innerHTML = Array(5).fill(0).map((_, i) => {
+                let iconClass = 'fas text-2xl ';
+                if (i < currentPracticeStageIndex) iconClass += 'fa-box text-green-400';
+                else if (i === currentPracticeStageIndex) iconClass += 'fa-box-open text-blue-400';
+                else iconClass += 'fa-box text-gray-400';
+                return `<i class="${iconClass}"></i>`;
+            }).join('');
         }
 
         function updateDiscardButtonState() {
-            if (trashBin.length > 0) {
-                discardButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                discardButton.disabled = false;
-            } else {
-                discardButton.classList.add('opacity-50', 'cursor-not-allowed');
-                discardButton.disabled = true;
-            }
+            discardButton.disabled = trashBin.length === 0;
+            discardButton.classList.toggle('opacity-50', discardButton.disabled);
+            discardButton.classList.toggle('cursor-not-allowed', discardButton.disabled);
         }
 
         function comparePans() {
             const mainPansReady = balanceLeftPan.length > 0 && balanceRightPan.length > 0;
             const miniPansReady = miniBalanceLeftPan.length > 0 && miniBalanceRightPan.length > 0;
             const electromagnetBoxHasCoins = electromagnetBox.length > 0;
-            let tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
-            const electromagnetUnlocked = tempHighestClearedStage >= 1;
-            const miniBalanceUnlocked = tempHighestClearedStage >= 2;
-            const electromagnetActiveForStage = currentStage.electromagnetActive;
-            const miniBalanceActiveForStage = currentStage.miniBalanceActive;
-            const canUseElectromagnet = electromagnetUnlocked && electromagnetActiveForStage;
-            const canUseMiniBalance = miniBalanceUnlocked && miniBalanceActiveForStage;
+            const tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
+            const canUseElectromagnet = tempHighestClearedStage >= 1 && currentStage.electromagnetActive;
+            const canUseMiniBalance = tempHighestClearedStage >= 2 && currentStage.miniBalanceActive;
 
-            if (!mainPansReady && (balanceLeftPan.length > 0 || balanceRightPan.length > 0)) {
-                showTemporaryMessage("メイン天秤の両方の皿にコインを置いてください！", "bg-red-500");
-                return;
-            }
-            if (canUseMiniBalance && !miniPansReady && (miniBalanceLeftPan.length > 0 || miniBalanceRightPan.length > 0)) {
-                showTemporaryMessage("ミニ天秤の両方の皿にコインを置いてください！", "bg-red-500");
+            if ((!mainPansReady && (balanceLeftPan.length > 0 || balanceRightPan.length > 0)) ||
+                (canUseMiniBalance && !miniPansReady && (miniBalanceLeftPan.length > 0 || miniBalanceRightPan.length > 0))) {
+                showTemporaryMessage("天秤の両方の皿にコインを置いてください！", "bg-red-500");
                 return;
             }
 
-            const anyValidActionPossible = mainPansReady || (canUseMiniBalance && miniPansReady) || (canUseElectromagnet && electromagnetBoxHasCoins);
-            if (!anyValidActionPossible) {
+            if (!mainPansReady && !(canUseMiniBalance && miniPansReady) && !(canUseElectromagnet && electromagnetBoxHasCoins)) {
                 showTemporaryMessage("比較できるコインがありません！", "bg-red-500");
                 return;
             }
@@ -1352,46 +1289,32 @@
             }
 
             if (mainPansReady) {
-                const leftWeight = balanceLeftPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
-                const rightWeight = balanceRightPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
-                const panMoveAmount = '20px';
-                leftPanArea.classList.add('pan-highlight', 'border-green-300');
-                rightPanArea.classList.add('pan-highlight', 'border-green-300');
-                leftPanArea.classList.remove('border-gray-300');
-                rightPanArea.classList.remove('border-gray-300');
-                if (leftWeight > rightWeight) {
-                    leftPanArea.style.transform = `translateY(${panMoveAmount})`;
-                    rightPanArea.style.transform = `translateY(-${panMoveAmount})`;
-                } else if (rightWeight > leftWeight) {
-                    leftPanArea.style.transform = `translateY(-${panMoveAmount})`;
-                    rightPanArea.style.transform = `translateY(${panMoveAmount})`;
+                const leftWeight = balanceLeftPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
+                const rightWeight = balanceRightPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
+                [leftPanArea, rightPanArea].forEach(p => p.classList.add('pan-highlight', 'border-green-300'));
+                [leftPanArea, rightPanArea].forEach(p => p.classList.remove('border-gray-300'));
+                if (leftWeight !== rightWeight) {
+                    const heavierPan = leftWeight > rightWeight ? leftPanArea : rightPanArea;
+                    const lighterPan = leftWeight < rightWeight ? leftPanArea : rightPanArea;
+                    heavierPan.style.transform = 'translateY(20px)';
+                    lighterPan.style.transform = 'translateY(-20px)';
                 } else {
-                    leftPanArea.style.transform = 'translateY(0)';
-                    rightPanArea.style.transform = 'translateY(0)';
-                    leftPanArea.classList.replace('border-green-300', 'border-sky-200');
-                    rightPanArea.classList.replace('border-green-300', 'border-sky-200');
+                    [leftPanArea, rightPanArea].forEach(p => p.classList.replace('border-green-300', 'border-sky-200'));
                 }
             }
 
             if (canUseMiniBalance && miniPansReady) {
-                const miniLeftWeight = miniBalanceLeftPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
-                const miniRightWeight = miniBalanceRightPan.reduce((sum, id) => sum + coins.find(c => c.id === id).weight, 0);
-                const panMoveAmount = '10px';
-                leftMiniPanArea.classList.add('pan-highlight', 'border-blue-300');
-                rightMiniPanArea.classList.add('pan-highlight', 'border-blue-300');
-                leftMiniPanArea.classList.remove('border-gray-300');
-                rightMiniPanArea.classList.remove('border-gray-300');
-                if (miniLeftWeight > miniRightWeight) {
-                    leftMiniPanArea.style.transform = `translateY(${panMoveAmount})`;
-                    rightMiniPanArea.style.transform = `translateY(-${panMoveAmount})`;
-                } else if (miniRightWeight > miniLeftWeight) {
-                    leftMiniPanArea.style.transform = `translateY(-${panMoveAmount})`;
-                    rightMiniPanArea.style.transform = `translateY(${panMoveAmount})`;
+                const miniLeftWeight = miniBalanceLeftPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
+                const miniRightWeight = miniBalanceRightPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
+                [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.add('pan-highlight', 'border-blue-300'));
+                [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.remove('border-gray-300'));
+                if (miniLeftWeight !== miniRightWeight) {
+                    const heavierPan = miniLeftWeight > miniRightWeight ? leftMiniPanArea : rightMiniPanArea;
+                    const lighterPan = miniLeftWeight < miniRightWeight ? leftMiniPanArea : rightMiniPanArea;
+                    heavierPan.style.transform = 'translateY(10px)';
+                    lighterPan.style.transform = 'translateY(-10px)';
                 } else {
-                    leftMiniPanArea.style.transform = 'translateY(0)';
-                    rightMiniPanArea.style.transform = 'translateY(0)';
-                    leftMiniPanArea.classList.replace('border-blue-300', 'border-sky-200');
-                    rightMiniPanArea.classList.replace('border-blue-300', 'border-sky-200');
+                     [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.replace('border-blue-300', 'border-sky-200'));
                 }
             }
 
@@ -1399,7 +1322,7 @@
 
             if (isInPracticeMode) executionCount--; else executionCount++;
             updateExecutionCountDisplay();
-            
+
             if (isInPracticeMode && executionCount <= 0) {
                 executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
                 executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
@@ -1408,32 +1331,22 @@
 
         function checkResult() {
             if (!currentStage) return;
-            const trashCoinTypes = {};
-            trashBin.forEach(id => {
+            const trashCoinTypes = trashBin.reduce((acc, id) => {
                 const coin = coins.find(c => c.id === id);
-                if (coin) trashCoinTypes[coin.type] = (trashCoinTypes[coin.type] || 0) + 1;
-            });
-            const targetTotalCount = currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0);
-            let isCorrect = trashBin.length === targetTotalCount;
-            if (isCorrect) {
-                const targetCoinCounts = {};
-                currentStage.targetCoinArray.forEach(t => targetCoinCounts[t.type] = t.count);
-                for (const type in targetCoinCounts) {
-                    if (trashCoinTypes[type] !== targetCoinCounts[type]) {
-                        isCorrect = false;
-                        break;
-                    }
-                }
-                for (const type in trashCoinTypes) {
-                    if (!targetCoinCounts[type]) {
-                        isCorrect = false;
-                        break;
-                    }
-                }
-            }
+                if(coin) acc[coin.type] = (acc[coin.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            const targetCoinCounts = currentStage.targetCoinArray.reduce((acc, t) => {
+                acc[t.type] = t.count;
+                return acc;
+            }, {});
+
+            const isCorrect = JSON.stringify(trashCoinTypes) === JSON.stringify(targetCoinCounts) &&
+                              trashBin.length === currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0);
 
             if (isCorrect) {
-                if (isInPracticeMode) {
+                 if (isInPracticeMode) {
                     if (executionCount >= currentStage.targetExecutionCount1) evaluationStars = 3;
                     else if (executionCount >= currentStage.targetExecutionCount2) evaluationStars = 2;
                     else evaluationStars = 1;
@@ -1445,15 +1358,13 @@
                 saveStageEvaluation(currentStage.stageNumber, evaluationStars);
                 updateEvaluationStarsDisplay();
                 updateSubAreaVisibility();
-                showResultWindow(true);
-            } else {
-                showResultWindow(false);
             }
+            showResultWindow(isCorrect);
         }
 
         function openRuleWindow() {
             ruleWindow.classList.remove('hidden');
-            showRulePage(currentRulePageIndex);
+            showRulePage(0);
         }
 
         function closeRuleWindow() {
@@ -1471,13 +1382,8 @@
             nextRulePageButton.classList.toggle('opacity-50', index === rulePages.length - 1);
         }
 
-        function showPrevRulePage() {
-            showRulePage(currentRulePageIndex - 1);
-        }
-
-        function showNextRulePage() {
-            showRulePage(currentRulePageIndex + 1);
-        }
+        function showPrevRulePage() { showRulePage(currentRulePageIndex - 1); }
+        function showNextRulePage() { showRulePage(currentRulePageIndex + 1); }
 
         async function openStageSelectWindow() {
             stageSelectWindow.classList.remove('hidden');
@@ -1486,27 +1392,15 @@
             const stageEvaluations = await getStageEvaluations();
             stageList.innerHTML = '';
             stages.forEach(stage => {
-                const stageDiv = document.createElement('div');
-                stageDiv.className = 'rounded-lg p-4 shadow-md transition duration-200 ease-in-out flex flex-row items-center justify-between';
-                stageDiv.dataset.stageNumber = stage.stageNumber;
                 const isLocked = stage.stageNumber > window.highestClearedStage + 1;
-                let stageClass = '', clickHandler = null, lockIcon = '', starsHtml = '';
-                if (isLocked) {
-                    stageClass = 'bg-gray-200 text-gray-500 cursor-not-allowed';
-                    lockIcon = '<i class="fas fa-lock ml-2 text-gray-400"></i>';
-                } else {
-                    stageClass = 'bg-blue-100 hover:bg-blue-200 cursor-pointer';
-                    clickHandler = () => loadStage(stage.stageNumber);
-                    starsHtml = Array(3).fill('<i class="far fa-star text-gray-400"></i>').map((star, i) => {
-                        return i < (stageEvaluations[stage.stageNumber] || 0) ? '<i class="fas fa-star text-yellow-500"></i>' : star;
-                    }).join('');
-                }
-                stageDiv.classList.add(...stageClass.split(' '));
-                if (clickHandler) stageDiv.addEventListener('click', clickHandler);
+                const stageDiv = document.createElement('div');
+                stageDiv.className = `rounded-lg p-4 shadow-md transition duration-200 ease-in-out flex flex-row items-center justify-between ${isLocked ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-100 hover:bg-blue-200 cursor-pointer'}`;
+                if (!isLocked) stageDiv.addEventListener('click', () => loadStage(stage.stageNumber));
+                const starsHtml = isLocked ? '' : Array(3).fill(0).map((_, i) => `<i class="${i < (stageEvaluations[stage.stageNumber] || 0) ? 'fas fa-star text-yellow-500' : 'far fa-star text-gray-400'}"></i>`).join('');
                 stageDiv.innerHTML = `
-                    <div class="w-1/4 flex justify-center items-center"><span class="text-xl font-bold text-blue-800 text-center">${stage.stageNumber}</span></div>
-                    <div class="w-2/4 flex items-center"><span class="text-gray-700">${stage.goalText}</span></div>
-                    <div class="w-1/4 flex justify-end items-center"><span class="text-xl text-yellow-400">${starsHtml}</span>${lockIcon}</div>`;
+                    <div class="w-1/4 text-center"><span class="text-xl font-bold text-blue-800">${stage.stageNumber}</span></div>
+                    <div class="w-2/4"><span class="text-gray-700">${stage.goalText}</span></div>
+                    <div class="w-1/4 flex justify-end items-center"><span class="text-xl">${starsHtml}</span>${isLocked ? '<i class="fas fa-lock ml-2 text-gray-400"></i>' : ''}</div>`;
                 stageList.appendChild(stageDiv);
             });
         }
@@ -1517,19 +1411,16 @@
 
         function getRandomStagesForPractice(count) {
             const playableStages = stages.filter(s => s.stageNumber > 0).sort((a, b) => a.stageNumber - b.stageNumber);
-            const selectedStages = [];
             let availableStagesPool = [...playableStages];
-            const percentages = [1, 0.8, 0.6, 0.4, 0.2];
-            for (let i = 0; i < count; i++) {
-                let currentPool = i === 0 ? [...availableStagesPool] : availableStagesPool.slice(Math.floor(availableStagesPool.length * (1 - percentages[i])));
-                if (currentPool.length === 0) currentPool = [...availableStagesPool];
-                if (currentPool.length === 0) break;
-                const randomIndex = Math.floor(Math.random() * currentPool.length);
-                const selectedStage = currentPool[randomIndex];
-                selectedStages.push(selectedStage);
-                availableStagesPool = availableStagesPool.filter(s => s.stageNumber !== selectedStage.stageNumber);
-            }
-            return selectedStages;
+            return Array.from({length: count}, (_, i) => {
+                const percentages = [1, 0.8, 0.6, 0.4, 0.2];
+                let pool = i === 0 ? availableStagesPool : availableStagesPool.slice(Math.floor(availableStagesPool.length * (1 - percentages[i])));
+                if(pool.length === 0) pool = availableStagesPool;
+                if(pool.length === 0) return null;
+                const selected = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+                availableStagesPool = availableStagesPool.filter(s => s.stageNumber !== selected.stageNumber);
+                return selected;
+            }).filter(Boolean);
         }
 
         function openPracticeModeWindow() {
@@ -1552,7 +1443,7 @@
             executionCountDisplay.classList.replace('text-white', 'text-red-500');
             updatePracticeProgressDisplay();
             if (practiceModeStages.length > 0) {
-                currentStage = practiceModeStages[currentPracticeStageIndex];
+                currentStage = practiceModeStages[0];
                 startGameForCurrentStage();
             } else {
                 showTemporaryMessage("実践モードのステージがありません。", "bg-red-500");
@@ -1574,8 +1465,6 @@
 
         function endPracticeMode() {
             isInPracticeMode = false;
-            practiceModeStages = [];
-            currentPracticeStageIndex = 0;
             infoArea.classList.replace('from-red-600', 'from-blue-600');
             infoArea.classList.replace('to-red-800', 'to-blue-800');
             executionCountDisplay.classList.replace('text-red-500', 'text-white');
@@ -1592,13 +1481,8 @@
             stageDescDescription.innerHTML = currentStage.stageDescription;
             stageDescGoal.textContent = `目標: ${currentStage.goalText}`;
             stageDescriptionWindow.classList.remove('hidden');
-            if (fromGoalText) {
-                stageDescStartButton.classList.add('hidden');
-                closeDescWindowButton.classList.remove('hidden');
-            } else {
-                stageDescStartButton.classList.remove('hidden');
-                closeDescWindowButton.classList.add('hidden');
-            }
+            stageDescStartButton.classList.toggle('hidden', fromGoalText);
+            closeDescWindowButton.classList.toggle('hidden', !fromGoalText);
         }
 
         function closeStageDescriptionWindow() {
@@ -1609,98 +1493,63 @@
             resultWindow.classList.remove('hidden');
             resultStageInfo.textContent = `ステージ ${currentStage.stageNumber}`;
             resultGoal.textContent = currentStage.goalText;
-            if (isInPracticeMode) resultExecutionCountDisplay.classList.add('hidden');
-            else {
-                resultExecutionCountDisplay.classList.remove('hidden');
-                resultExecutionCountDisplay.textContent = `実行数: ${executionCount}`;
-            }
+            resultExecutionCountDisplay.classList.toggle('hidden', isInPracticeMode);
+            if(!isInPracticeMode) resultExecutionCountDisplay.textContent = `実行数: ${executionCount}`;
+            
+            resultTitle.textContent = isCorrect ? "正解！" : "不正解...";
+            resultTitle.classList.toggle('text-green-600', isCorrect);
+            resultTitle.classList.toggle('text-red-600', !isCorrect);
 
-            if (isCorrect) {
-                resultTitle.textContent = "正解！";
-                resultTitle.classList.replace('text-red-600', 'text-green-600');
-                if (isInPracticeMode) {
-                    resultStarsDisplay.innerHTML = '';
-                    for (let i = 0; i < 5; i++) {
-                        const boxIcon = document.createElement('i');
-                        boxIcon.className = `fas mx-1 ${i < currentPracticeStageIndex ? 'fa-box text-green-400 text-5xl' : i === currentPracticeStageIndex ? 'fa-box-open text-green-400 text-6xl' : 'fa-box text-gray-400 text-5xl'}`;
-                        resultStarsDisplay.appendChild(boxIcon);
-                    }
-                } else {
-                    resultStarsDisplay.innerHTML = Array(3).fill('').map((_, i) => `<i class="fas fa-star text-yellow-400 ${i < evaluationStars ? '' : 'opacity-30'}"></i>`).join('');
-                }
-                resultRetryButton.classList.add('hidden');
-                resultRetryPracticeButton.classList.add('hidden');
-                if (isInPracticeMode && currentPracticeStageIndex === practiceModeStages.length - 1) {
-                    resultNextButton.classList.add('hidden');
-                    resultEndPracticeButton.classList.remove('hidden');
-                    resultEndPracticeButton.disabled = false;
-                    resultEndPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resultRetryPracticeButton.classList.remove('hidden');
-                    resultRetryPracticeButton.textContent = '最初から';
-                    resultRetryPracticeButton.disabled = false;
-                    resultRetryPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                } else if (isInPracticeMode) {
-                    resultNextButton.classList.remove('hidden');
-                    resultNextButton.disabled = false;
-                    resultNextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resultEndPracticeButton.classList.add('hidden');
-                    resultRetryPracticeButton.classList.remove('hidden');
-                    resultRetryPracticeButton.textContent = '最初から';
-                    resultRetryPracticeButton.disabled = false;
-                    resultRetryPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                } else if (currentStage.stageNumber < Math.max(...stages.map(s => s.stageNumber))) {
-                    resultNextButton.classList.remove('hidden');
-                    resultNextButton.disabled = false;
-                    resultNextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resultRetryButton.classList.remove('hidden');
-                    resultRetryButton.textContent = 'もう一度';
-                    resultRetryButton.disabled = false;
-                    resultRetryButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                } else {
-                    resultNextButton.classList.add('hidden');
-                    resultRetryButton.classList.remove('hidden');
-                    resultRetryButton.textContent = 'もう一度';
-                    resultRetryButton.disabled = false;
-                    resultRetryButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-                resultBackButton.classList.add('hidden');
-                resultRestartButton.classList.add('hidden');
+            if(isInPracticeMode){
+                resultStarsDisplay.innerHTML = Array(5).fill(0).map((_,i) => {
+                    let iconClass = 'fas mx-1 ';
+                    if(i < currentPracticeStageIndex) iconClass += 'fa-box text-green-400 text-5xl';
+                    else if (i === currentPracticeStageIndex) iconClass += `fa-box-open text-6xl ${isCorrect ? 'text-green-400' : 'text-red-400'}`;
+                    else iconClass += 'fa-box text-gray-400 text-5xl';
+                    return `<i class="${iconClass}"></i>`;
+                }).join('');
             } else {
-                resultTitle.textContent = "不正解...";
-                resultTitle.classList.replace('text-green-600', 'text-red-600');
+                 resultStarsDisplay.innerHTML = isCorrect ? Array(3).fill(0).map((_, i) => `<i class="fas fa-star text-yellow-400 ${i < evaluationStars ? '' : 'opacity-30'}"></i>`).join('') : '<i class="far fa-frown text-gray-400 text-6xl"></i>';
+            }
+            
+            [resultRetryButton, resultNextButton, resultEndPracticeButton, resultRetryPracticeButton, resultBackButton, resultRestartButton].forEach(btn => btn.classList.add('hidden'));
+
+            if(isCorrect) {
+                const isLastPracticeStage = isInPracticeMode && currentPracticeStageIndex >= practiceModeStages.length - 1;
+                const isLastNormalStage = !isInPracticeMode && currentStage.stageNumber >= Math.max(...stages.map(s => s.stageNumber));
+
                 if (isInPracticeMode) {
-                    resultStarsDisplay.innerHTML = '';
-                    for (let i = 0; i < 5; i++) {
-                        const boxIcon = document.createElement('i');
-                        boxIcon.className = `fas mx-1 ${i < currentPracticeStageIndex ? 'fa-box text-green-400 text-5xl' : i === currentPracticeStageIndex ? 'fa-box-open text-red-400 text-6xl' : 'fa-box text-gray-400 text-5xl'}`;
-                        resultStarsDisplay.appendChild(boxIcon);
+                    if (isLastPracticeStage) {
+                        resultEndPracticeButton.classList.remove('hidden');
+                    } else {
+                        resultNextButton.classList.remove('hidden');
                     }
+                    resultRetryPracticeButton.classList.remove('hidden');
+                    resultRetryPracticeButton.textContent = '最初から';
                 } else {
-                    resultStarsDisplay.innerHTML = '<i class="far fa-frown text-gray-400 text-6xl"></i>';
+                    resultRetryButton.classList.remove('hidden');
+                    if (!isLastNormalStage) {
+                        resultNextButton.classList.remove('hidden');
+                    }
                 }
-                resultRetryButton.classList.add('hidden');
-                resultNextButton.classList.add('hidden');
-                resultRetryPracticeButton.classList.add('hidden');
+            } else {
                 if (isInPracticeMode) {
                     resultEndPracticeButton.classList.remove('hidden');
-                    resultEndPracticeButton.disabled = false;
-                    resultEndPracticeButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resultBackButton.classList.add('hidden');
                     resultRestartButton.classList.remove('hidden');
                     resultRestartButton.textContent = '最初から';
-                    resultRestartButton.disabled = false;
-                    resultRestartButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 } else {
                     resultBackButton.classList.remove('hidden');
-                    resultBackButton.disabled = false;
-                    resultBackButton.classList.remove('opacity-50', 'cursor-not-allowed');
                     resultRestartButton.classList.remove('hidden');
                     resultRestartButton.textContent = 'もう一度';
-                    resultRestartButton.disabled = false;
-                    resultRestartButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resultEndPracticeButton.classList.add('hidden');
                 }
             }
+
+            [resultRetryButton, resultNextButton, resultEndPracticeButton, resultRetryPracticeButton, resultBackButton, resultRestartButton].forEach(btn => {
+                if (!btn.classList.contains('hidden')) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
         }
 
         function closeResultWindow() {
@@ -1708,18 +1557,12 @@
         }
 
         function loadNextStage() {
-            const maxStageNumber = Math.max(...stages.map(s => s.stageNumber));
-            if (currentStage.stageNumber === maxStageNumber) {
+            const nextStageNumber = currentStage.stageNumber + 1;
+            if (stages.some(s => s.stageNumber === nextStageNumber)) {
+                loadStage(nextStageNumber);
+            } else {
                 showTemporaryMessage("すべてのステージをクリアしました！", "bg-blue-500");
                 openStageSelectWindow();
-            } else {
-                const currentStageIndex = stages.findIndex(s => s.stageNumber === currentStage.stageNumber);
-                if (currentStageIndex !== -1 && currentStageIndex + 1 < stages.length) {
-                    loadStage(stages[currentStageIndex + 1].stageNumber);
-                } else {
-                    showTemporaryMessage("次のステージが見つかりません。", "bg-yellow-500");
-                    openStageSelectWindow();
-                }
             }
         }
 
@@ -1729,10 +1572,6 @@
             if (!isInPracticeMode) {
                 executionCount++;
                 updateExecutionCountDisplay();
-            }
-            if (isInPracticeMode && executionCount <= 0) {
-                executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
-                executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
             }
         }
 
@@ -1748,68 +1587,49 @@
                 miniBalanceArea.classList.add('hidden');
                 return;
             }
-            let tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
-            const electromagnetUnlocked = tempHighestClearedStage >= 1;
-            const miniBalanceUnlocked = tempHighestClearedStage >= 2;
-            if (electromagnetUnlocked) {
-                electromagnetArea.classList.remove('hidden');
-                if (currentStage.electromagnetActive) {
-                    electromagnetBoxElement.classList.remove('hidden');
-                    electromagnetInactivePlaceholder.classList.add('hidden');
-                } else {
-                    electromagnetBoxElement.classList.add('hidden');
-                    electromagnetInactivePlaceholder.classList.remove('hidden');
-                }
-            } else {
-                electromagnetArea.classList.add('hidden');
+            const tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
+            
+            const isElectromagnetVisible = tempHighestClearedStage >= 1;
+            electromagnetArea.classList.toggle('hidden', !isElectromagnetVisible);
+            if(isElectromagnetVisible){
+                electromagnetBoxElement.classList.toggle('hidden', !currentStage.electromagnetActive);
+                electromagnetInactivePlaceholder.classList.toggle('hidden', currentStage.electromagnetActive);
             }
 
-            if (miniBalanceUnlocked) {
-                miniBalanceArea.classList.remove('hidden');
-                if (currentStage.miniBalanceActive) {
-                    miniBalanceArea.querySelector('#leftMiniPanArea').classList.remove('hidden');
-                    miniBalanceArea.querySelector('#rightMiniPanArea').classList.remove('hidden');
-                    miniBalanceArea.querySelector('#miniBalanceLabel').classList.remove('hidden');
-                    miniBalanceArea.querySelector('.fa-balance-scale').classList.remove('hidden');
-                    miniBalanceInactivePlaceholder.classList.add('hidden');
-                } else {
-                    miniBalanceArea.querySelector('#leftMiniPanArea').classList.add('hidden');
-                    miniBalanceArea.querySelector('#rightMiniPanArea').classList.add('hidden');
-                    miniBalanceArea.querySelector('#miniBalanceLabel').classList.add('hidden');
-                    miniBalanceArea.querySelector('.fa-balance-scale').classList.add('hidden');
-                    miniBalanceInactivePlaceholder.classList.remove('hidden');
-                }
-            } else {
-                miniBalanceArea.classList.add('hidden');
+            const isMiniBalanceVisible = tempHighestClearedStage >= 2;
+            miniBalanceArea.classList.toggle('hidden', !isMiniBalanceVisible);
+            if(isMiniBalanceVisible){
+                const isActive = currentStage.miniBalanceActive;
+                miniBalanceArea.querySelector('#leftMiniPanArea').classList.toggle('hidden', !isActive);
+                miniBalanceArea.querySelector('#rightMiniPanArea').classList.toggle('hidden', !isActive);
+                miniBalanceArea.querySelector('#miniBalanceLabel').classList.toggle('hidden', !isActive);
+                miniBalanceArea.querySelector('.fa-balance-scale').classList.toggle('hidden', !isActive);
+                miniBalanceInactivePlaceholder.classList.toggle('hidden', isActive);
             }
 
-            if (isInPracticeMode) {
-                evaluationStarsDisplay.classList.add('hidden');
-                practiceProgressDisplay.classList.remove('hidden');
-                updatePracticeProgressDisplay();
-            } else {
-                evaluationStarsDisplay.classList.remove('hidden');
-                practiceProgressDisplay.classList.add('hidden');
-                updateEvaluationStarsDisplay();
-            }
+            evaluationStarsDisplay.classList.toggle('hidden', isInPracticeMode);
+            practiceProgressDisplay.classList.toggle('hidden', !isInPracticeMode);
+            if (isInPracticeMode) updatePracticeProgressDisplay();
+            else updateEvaluationStarsDisplay();
         }
 
         function updateAreaPlaceholders() {
-            const toggle = (area, hasContent) => {
-                const text = document.getElementById(`${area}PlaceholderText`);
-                const icon = document.getElementById(`${area}PlaceholderIcon`);
-                const moonIcon = document.getElementById(`${area}MoonIcon`);
-                if (text) text.classList.toggle('hidden', hasContent);
-                if (icon && area !== 'coinArea' && area !== 'trashBin') icon.classList.toggle('hidden', hasContent);
-                if (moonIcon) moonIcon.classList.toggle('hidden', hasContent);
+            const toggleText = (elementId, hasContent) => {
+                document.getElementById(elementId)?.classList.toggle('hidden', hasContent);
             };
 
-            toggle('coinArea', coins.some(c => c.currentPosition === 'coinArea'));
-            toggle('leftPan', balanceLeftPan.length > 0);
-            toggle('rightPan', balanceRightPan.length > 0);
-            toggle('trashBin', trashBin.length > 0);
-            toggle('leftMiniPan', miniBalanceLeftPan.length > 0 || !currentStage || !currentStage.miniBalanceActive || window.highestClearedStage < 2);
-            toggle('rightMiniPan', miniBalanceRightPan.length > 0 || !currentStage || !currentStage.miniBalanceActive || window.highestClearedStage < 2);
+            toggleText('coinAreaPlaceholderText', coins.some(c => c.currentPosition === 'coinArea'));
+            toggleText('trashBinPlaceholderText', trashBin.length > 0);
+            
+            toggleText('leftPanPlaceholderText', balanceLeftPan.length > 0);
+            toggleText('rightPanPlaceholderText', balanceRightPan.length > 0);
+            
+            const miniBalanceUnlocked = window.highestClearedStage >= 2;
+            const miniBalanceActiveForStage = currentStage ? currentStage.miniBalanceActive : false;
+            const showMiniPanPlaceholders = miniBalanceUnlocked && miniBalanceActiveForStage;
+
+            toggleText('leftMiniPanPlaceholderText', !showMiniPanPlaceholders || miniBalanceLeftPan.length > 0);
+            toggleText('rightMiniPanPlaceholderText', !showMiniPanPlaceholders || miniBalanceRightPan.length > 0);
         }
 
         function showTemporaryMessage(message, bgColorClass) {
@@ -1819,10 +1639,8 @@
             document.body.appendChild(messageBox);
             setTimeout(() => {
                 messageBox.classList.remove('opacity-0', 'translate-y-10');
-                messageBox.classList.add('opacity-100', 'translate-y-0');
             }, 10);
             setTimeout(() => {
-                messageBox.classList.remove('opacity-100', 'translate-y-0');
                 messageBox.classList.add('opacity-0', 'translate-y-10');
                 messageBox.addEventListener('transitionend', () => messageBox.remove());
             }, 3000);
