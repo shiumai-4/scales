@@ -8,26 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* ▼▼▼ この部分を修正 ▼▼▼ */
         body {
             font-family: 'Inter', sans-serif;
-            overflow: auto;
-            /* touch-action: none; Removed to allow touch scrolling */
-            display: flex;
-            justify-content: center; /* Center horizontally */
-            align-items: center; /* Align to top to allow scrolling down */
-            min-height: 100vh;
             background-color: #f3f4f6;
-            padding: 2rem; /* Add some breathing room */
-            box-sizing: border-box; /* Include padding in height/width calculation */
-            flex-direction: column;
+            /* padding: 2rem; を削除 */
+            box-sizing: border-box;
         }
-        @media (max-width: 720px) {
-            body {
-                flex-direction: column;
-                align-items: flex-start; /* 左揃えに上書き */
-            }
-        }
-        /* Main game container styling */
+        /* ▲▲▲ bodyのpadding設定を削除しました ▲▲▲ */
+
+        /* ▼▼▼ この部分を修正 ▼▼▼ */
         #gameContainer {
             max-width: 1280px;
             max-height: 720px;
@@ -37,20 +27,18 @@
             aspect-ratio: 4 / 3;
             display: flex;
             flex-direction: column;
-            /* overflow: hidden; Removed to allow its content to be visible */
             border-radius: 1rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
             position: relative;
-            flex-shrink: 0; /* Prevent container from shrinking */
+            flex-shrink: 0;
+            margin: 2rem auto 0 auto; /* ゲーム画面を中央に配置し、上下マージンを追加 */
         }
+        /* ▲▲▲ marginプロパティを変更 ▲▲▲ */
 
         .pan-container {
             transition: transform 0.5s ease-in-out;
             position: relative;
-        }
-        .pan-highlight {
-            background-color: rgba(255, 255, 0, 0.2);
         }
         .coin {
             width: 50px;
@@ -66,79 +54,29 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: 2px solid rgba(0, 0, 0, 0.1);
             z-index: 10;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
             touch-action: none;
         }
         .coin-blue { background-color: #60a5fa; color: white; }
         .coin-red { background-color: #ef4444; color: white; }
         .coin-yellow { background-color: #facc15; color: black; }
         .coin-green { background-color: #22c55e; color: white; }
-
         .memo-textarea {
             resize: vertical;
             scrollbar-width: thin;
             scrollbar-color: #9ca3af #e5e7eb;
         }
-        .memo-textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-        .memo-textarea::-webkit-scrollbar-track {
-            background: #e5e7eb;
-            border-radius: 10px;
-        }
-        .memo-textarea::-webkit-scrollbar-thumb {
-            background-color: #9ca3af;
-            border-radius: 10px;
-            border: 2px solid #e5e7eb;
-        }
-
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 100;
-        }
-        .modal-content {
-            z-index: 101;
-        }
-
-        .coin.dragging {
-            position: fixed;
-            z-index: 1000;
-            cursor: grabbing;
-        }
-
-        #coinArea {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .trash-bin-area {
-            position: relative;
-        }
-        .trash-bin-area .text-gray-500 {
-            z-index: 1;
-        }
-        .trash-bin-area .fa-trash-alt {
-            z-index: 1;
-        }
-
-        .electromagnet-box {
-            transition: transform 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out;
-            position: relative;
-        }
-
-        .memo-container {
-            position: relative;
-            display: flex;
-            align-items: stretch;
-        }
-        .memo-container .memo-icon {
-            pointer-events: none;
-        }
-
-
+        .memo-textarea::-webkit-scrollbar { width: 8px; }
+        .memo-textarea::-webkit-scrollbar-track { background: #e5e7eb; border-radius: 10px; }
+        .memo-textarea::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 10px; border: 2px solid #e5e7eb; }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); z-index: 100; }
+        .modal-content { z-index: 101; }
+        .coin.dragging { position: fixed; z-index: 1000; cursor: grabbing; }
+        #coinArea { position: relative; overflow: hidden; }
+        .trash-bin-area { position: relative; }
+        .trash-bin-area .text-gray-500, .trash-bin-area .fa-trash-alt { z-index: 1; }
+        .electromagnet-box { transition: transform 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out; position: relative; }
+        .memo-container { position: relative; display: flex; align-items: stretch; }
+        .memo-container .memo-icon { pointer-events: none; }
         #leftPanPlaceholderText, #leftPanPlaceholderIcon, #leftPanMoonIcon,
         #rightPanPlaceholderText, #rightPanPlaceholderIcon, #rightPanMoonIcon,
         #coinAreaPlaceholderText, #coinAreaPlaceholderIcon,
@@ -146,49 +84,50 @@
         #leftMiniPanPlaceholderText, #leftMiniPanPlaceholderIcon, #leftMiniPanMoonIcon,
         #rightMiniPanPlaceholderText, #rightMiniPanPlaceholderIcon, #rightMiniPanMoonIcon,
         #miniBalanceLabel,
-        #electromagnetBox .fa-magnet {
-            pointer-events: none;
-        }
+        #electromagnetBox .fa-magnet { pointer-events: none; }
+        #miniBalanceArea .fa-balance-scale { pointer-events: none; z-index: -1; }
 
-        #miniBalanceArea .fa-balance-scale {
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        /* Footer specific styles - カスタムした文字色、フォントサイズ、マージン */
+        /* ▼▼▼ この部分を修正 ▼▼▼ */
         .main-footer {
-            width: 100%;
-            max-width: 600px; /* Match form container width */
+            max-width: 600px;
             text-align: center;
-            color: #374151; /* 例：文字色をより濃く */
-            margin-top: 40px; /* 例：フォームとの上マージンを調整 */
+            color: #374151;
+            margin: 40px auto 2rem auto; /* フッターを中央に配置し、下マージンを調整 */
         }
-        .main-footer a {
-            color: #d8971d; /* 例：リンクの色 */
-            text-decoration: none;
-            transition: color 0.2s ease-in-out;
-            font-size: 0.9rem; /* 例：リンクのフォントサイズを調整 */
-        }
-        .main-footer a:hover {
-            color: #8a580c; /* 例：ホバー時 */
-            text-decoration: underline;
-        }
-        .footer-links {
-            display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            justify-content: center;
-            gap: 1.25rem; /* 例：リンク間の間隔を広げる */
-            margin-bottom: 0.2rem; /* 例：リンク行と著作権表示間のマージンを調整 */
-        }
-        .footer-copyright {
-            font-size: 0.8rem; /* 例：著作権表示のフォントサイズを小さく */
-            color: #6b7280; /* グレーテキストは維持 */
+        /* ▲▲▲ marginプロパティを変更 ▲▲▲ */
+
+        .main-footer a { color: #d8971d; text-decoration: none; transition: color 0.2s ease-in-out; font-size: 0.9rem; }
+        .main-footer a:hover { color: #8a580c; text-decoration: underline; }
+        .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; margin-bottom: 0.2rem; }
+        .footer-copyright { font-size: 0.8rem; color: #6b7280; }
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 102;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <script type="module">
+    <canvas id="particleCanvas"></canvas>
+
+    <div id="titleScreen" class="w-full h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+        <h1 class="text-6xl font-bold text-gray-800 mb-4 text-center">コイン天秤ゲーム</h1>
+        <p class="text-xl text-gray-600 mb-12 text-center">偽のコインを見つけ出す、論理と推理のパズル</p>
+        <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
+            <button id="titleStoryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
+                <i class="fas fa-book-reader mr-2"></i>ストーリーモード
+            </button>
+            <button id="titlePracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
+                <i class="fas fa-dumbbell mr-2"></i>実践モード
+            </button>
+        </div>
+    </div>
+    <div id="gameContainer" class="hidden">
+    <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
             import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
             import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -252,9 +191,9 @@
             <button id="resetButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                 <i class="fas fa-redo-alt text-xl"></i>
             </button>
-            <div class="game-goal text-center flex-grow mx-4 flex items-center justify-center">
-                <img id="gameGoalImage" src="https://www.google.com/favicon.ico" alt="Game Goal Icon" class="w-6 h-6 mr-2 object-contain cursor-pointer">
-                <h2 id="gameGoalText" class="text-sm md:text-base font-semibold cursor-pointer">目標: ステージを選択してください</h2>
+            <div class="game-goal text-center flex-grow mx-2 flex items-center justify-center">
+                <img id="gameGoalImage" src="https://www.google.com/favicon.ico" alt="Game Goal Icon" class="w-9 h-9 mr-2 object-contain cursor-pointer">
+                <h2 id="gameGoalText" class="text-xl md:text-base font-semibold cursor-pointer">目標: ステージを選択してください</h2>
             </div>
             <div class="flex items-center space-x-4">
                 <div id="evaluationStars" class="text-yellow-400 text-2xl md:text-3xl"></div>
@@ -273,19 +212,22 @@
 
         <div class="game-board flex flex-grow p-4 space-x-4">
             <div class="main-area w-2/3 flex flex-col space-y-4">
-                <div id="balanceArea" class="balance-area bg-white rounded-xl shadow-lg p-4 flex items-center justify-around flex-grow relative overflow-hidden min-height: 300">
+                <div id="balanceArea" class="balance-area bg-white rounded-xl shadow-lg p-4 flex items-center justify-around flex-grow relative overflow-hidden">
                     <div id="leftPanArea" class="left-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="leftPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 left-2">左の皿</div>
                         <i id="leftPanPlaceholderIcon" class="fas fa-plate-wheat text-white text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
                         <i id="leftPanMoonIcon" class="fas fa-moon text-white text-6xl opacity-50 absolute inset-0 flex items-center justify-center z-0 transform [rotate:-70deg]"></i>
                     </div>
-                    <div class="execution-info flex flex-col items-center justify-center h-full w-1/3 space-y-4">
+                    <div class="execution-info flex flex-col items-center justify-center h-full w-1/3 space-y-2">
                         <button id="executeButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300 text-sm md:text-base">
                             <i class="fas fa-balance-scale mr-2"></i>比較
                         </button>
                         <div class="execution-count bg-gray-700 py-2 px-4 rounded-lg shadow-inner text-sm md:text-base text-white">
                             実行数: <span id="executionCountDisplay" class="text-white">0</span>
                         </div>
+                        <button id="resetCoinsButton" class="bg-gray-400 hover:bg-gray-600 text-white font-bold p-3 rounded-full shadow-md transition duration-300 ease-in-out transform hover:scale-105" title="コインを置き場に戻す">
+                            <i class="fas fa-caret-down text-xl"></i>
+                        </button>
                     </div>
                     <div id="rightPanArea" class="right-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
                         <div id="rightPanPlaceholderText" class="text-gray-500 text-sm absolute top-2 z-10 right-2">右の皿</div>
@@ -295,11 +237,11 @@
                 </div>
 
                 <div id="coinArea" class="coin-area bg-white rounded-xl shadow-lg px-2 py-4 h-[35%] overflow-y-auto">
-                    <div id="coinAreaPlaceholderText" class="text-gray-500 text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2　z-10">コイン置き場</div>
-                    <i id="coinAreaPlaceholderIcon" class="fas fa-box-open text-gray-300 text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-0"></i>
+                    <div id="coinAreaPlaceholderText" class="text-gray-500 text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2　z-0">コイン置き場</div>
+                    <i id="coinAreaPlaceholderIcon" class="fas fa-box-open text-gray-300 text-8xl opacity-50 absolute inset-0 flex items-center justify-center z-10"></i>
                 </div>
 
-                <div id="memoAreaWrapper" class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 flex-shrink-0">
+                <div id="memoAreaWrapper" class="flex flex-row space-x-4 flex-shrink-0">
                     <div class="memo-container w-full md:w-1/2 rounded-xl shadow-lg bg-blue-50 border border-gray-300" style="min-height: 50px; max-height: 200px;">
                         <i id="memoIcon1" class="memo-icon fas fa-clipboard text-pink-200 text-6xl opacity-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="z-index: 1;"></i>
                         <textarea id="memoTextarea1" class="memo-textarea w-full p-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 rounded-lg" placeholder="メモ 1..." style="min-height: 100%; max-height: 100%; background-color: transparent; position: relative; z-index: 2;"></textarea>
@@ -342,13 +284,13 @@
                         <i class="fas fa-wrench text-4xl"></i>
                     </div>
                 </div>
-                <div class="trash-area h-[40%] flex">
-                    <div id="trashBinArea" class="trash-bin-area bg-red-100 rounded-xl p-4 w-[65%] flex flex-wrap justify-center items-center relative overflow-y-auto border-4 border-red-300">
+                <div class="trash-area h-[40%] flex justify-center items-center">
+                    <div id="trashBinArea" class="trash-bin-area bg-red-100 rounded-xl p-4 w-[50%] h-[75%] flex flex-wrap justify-center items-center relative overflow-y-auto border-4 border-red-300">
                         <div id="trashBinPlaceholderText" class="text-gray-500 text-sm absolute top-2 left-2">ゴミ箱</div>
                         <i id="trashBinPlaceholderIcon" class="fas fa-trash-alt text-red-300 text-6xl opacity-50 absolute inset-0 flex items-center justify-center"></i>
                     </div>
-                    <div class="discard-button-container w-[35%] flex items-center justify-center p-2">
-                        <button id="discardButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 opacity-50 cursor-not-allowed w-full h-full flex items-center justify-center text-sm" disabled>
+                    <div class="discard-button-container w-[35%] h-[85%] flex items-center justify-center p-2">
+                        <button id="discardButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 opacity-50 cursor-not-allowed w-full h-full flex items-center justify-center text-xl" disabled>
                             <i class="fas fa-check-circle mr-1"></i>廃棄
                         </button>
                     </div>
@@ -357,7 +299,7 @@
         </div>
 
         <div id="ruleWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
-            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[560px] max-w-[800px] min-h-[200px] flex flex-col">
                 <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">ゲームルール</h2>
                 <div id="ruleContent" class="flex-grow overflow-y-auto mb-6 text-gray-700 text-lg"></div>
                 <div class="flex justify-between items-center mt-auto">
@@ -376,7 +318,7 @@
         </div>
 
         <div id="stageSelectWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
-            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[560px] max-w-[800px] min-h-[200px]  flex flex-col">
                 <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">ステージ選択</h2>
                 <div id="stageList" class="flex-grow overflow-y-auto mb-6 space-y-4"></div>
                 <button id="closeStageSelectWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-auto transition duration-300 ease-in-out w-fit mx-auto">
@@ -385,8 +327,21 @@
             </div>
         </div>
 
+        <div id="storyModeWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[560px] max-w-[800px] min-h-[200px]  flex flex-col">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">ストーリーモード</h2>
+                <p class="text-lg text-gray-700 mb-4 text-center">ステージを順番にクリアして、全ての謎を解き明かそう！</p>
+                <p class="text-center text-gray-600 mb-6">準備ができたら下のボタンを押してゲームを開始してください。</p>
+                <button id="startStoryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-play-circle mr-2"></i>ストーリーモード開始
+                </button>
+                <button id="closeStoryModeWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-4 transition duration-300 ease-in-out w-fit mx-auto">
+                    閉じる
+                </button>
+            </div>
+        </div>
         <div id="practiceModeWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
-            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] flex flex-col">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[560px] max-w-[800px] min-h-[200px]  flex flex-col">
                 <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">実践モード</h2>
                 <p class="text-lg text-gray-700 mb-4 text-center">ランダムに選ばれた5つのステージを連続でクリアしよう！</p>
                 <div id="practiceStageList" class="flex-grow overflow-y-auto mb-6 space-y-4"></div>
@@ -400,7 +355,7 @@
         </div>
 
         <div id="stageDescriptionWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
-            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-2/3 lg:w-1/2 text-center flex flex-col items-center">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-2/3 lg:w-1/2 text-center flex flex-col items-center max-h-[560px] max-w-[800px] min-h-[200px] ">
                 <h2 id="stageDescTitle" class="text-4xl font-bold mb-4 text-gray-800"></h2>
                 <div class="flex items-center justify-center mb-4">
                     <img id="stageDescImage" src="https://www.google.com/favicon.ico" alt="Stage Description Icon" class="w-6 h-6 mr-2 object-contain">
@@ -447,8 +402,8 @@
         </div>
     </div>
 
-    <footer class="main-footer">
-        <div class="footer-links">
+    <footer class="main-footer hidden">
+    <div class="footer-links">
             <a href="https://example.com/portfolio" target="_blank" rel="noopener noreferrer">作品集</a>
             <a href="https://x.com/your_x_handle" target="_blank" rel="noopener noreferrer">X</a>
             <a href="https://example.com/privacy-policy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
@@ -468,21 +423,98 @@
             console.error('UNHANDLED PROMISE REJECTION:', event.reason);
         });
 
+        const particleCanvas = document.getElementById('particleCanvas');
+        const particleCtx = particleCanvas.getContext('2d');
+        let particles = [];
+        const particleColors = ['#60a5fa', '#ef4444', '#facc15', '#22c55e', '#a78bfa', '#f472b6'];
+
+        function resizeParticleCanvas() {
+            particleCanvas.width = window.innerWidth;
+            particleCanvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor(x, y, isLeft) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 20 + 2;
+                this.speedX = Math.random() * 5 + 2;
+                if (!isLeft) this.speedX *= -1;
+                this.speedY = (Math.random() * -10) - 3;
+                this.color = particleColors[Math.floor(Math.random() * particleColors.length)];
+                this.skew = Math.random() - 0.5;
+                this.alpha = 1.0;
+                this.life = 0;
+                this.maxLife = 200;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += 0.1;
+                this.life++;
+                this.alpha = 1 - (this.life / this.maxLife);
+            }
+
+            draw() {
+                particleCtx.save();
+                particleCtx.globalAlpha = Math.max(0, this.alpha);
+                particleCtx.fillStyle = this.color;
+                particleCtx.beginPath();
+                const halfSize = this.size / 2;
+                particleCtx.moveTo(this.x - halfSize + (this.skew * halfSize), this.y - halfSize);
+                particleCtx.lineTo(this.x + halfSize + (this.skew * halfSize), this.y - halfSize);
+                particleCtx.lineTo(this.x + halfSize - (this.skew * halfSize), this.y + halfSize);
+                particleCtx.lineTo(this.x - halfSize - (this.skew * halfSize), this.y + halfSize);
+                particleCtx.closePath();
+                particleCtx.fill();
+                particleCtx.restore();
+            }
+        }
+
+        function createParticles() {
+            const modalContent = resultWindow.querySelector('.modal-content');
+            if (!modalContent) return;
+
+            const modalRect = modalContent.getBoundingClientRect();
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const leftX = modalRect.left;
+                const leftY = modalRect.bottom;
+                particles.push(new Particle(leftX, leftY, true));
+
+                const rightX = modalRect.right;
+                const rightY = modalRect.bottom;
+                particles.push(new Particle(rightX, rightY, false));
+            }
+        }
+
+        function animateParticles() {
+            particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+            if (particles.length > 0) {
+                requestAnimationFrame(animateParticles);
+            }
+        }
+
         let currentDraggedCoinElement = null;
-        let shiftX = 0;
-        let shiftY = 0;
+        let shiftX = 0, shiftY = 0;
         let isPointerDown = false;
-        let initialPointerX = 0;
-        let initialPointerY = 0;
+        let initialPointerX = 0, initialPointerY = 0;
         const DRAG_THRESHOLD = 5;
         let originalCoinPositionOnDragStart = null;
         let isDragging = false;
 
         let coins = [];
-        let balanceLeftPan = [];
-        let balanceRightPan = [];
-        let miniBalanceLeftPan = [];
-        let miniBalanceRightPan = [];
+        let balanceLeftPan = [], balanceRightPan = [];
+        let miniBalanceLeftPan = [], miniBalanceRightPan = [];
         let trashBin = [];
         let electromagnetBox = [];
         let executionCount = 0;
@@ -498,70 +530,26 @@
             normalCoin: { weight: 10, material: 'steel' },
             heavyCoin: { weight: 11, material: 'steel' },
             lightCoin: { weight: 9, material: 'steel' },
+            normalAlmiCoin: { weight: 10, material: 'almi' },
+            normalGoldCoin: { weight: 10, material: 'gold' },
+            almiCoin: { weight: 9, material: 'almi' },
+            goldCoin: { weight: 11, material: 'gold' },
+            heavyCoinEx: { weight: 12, material: 'steel' },
+            lightCoinEx: { weight: 8, material: 'steel' },
+
             differentCoin: { weight: 10, material: 'steel' },
         };
 
         const stages = [
-            {
-                stageNumber: 1,
-                goalText: "重いコイン　× 1",
-                stageDescription: "4枚の中から重いコインを探して廃棄しておくれ",
-                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 1 }],
-                targetCoinArray: [{ type: 'heavyCoin', count: 1 }],
-                targetExecutionCount1: 2,
-                targetExecutionCount2: 3,
-                electromagnetMaterials: ['steel'],
-                electromagnetActive: false,
-                miniBalanceActive: false
-            },
-            {
-                stageNumber: 2,
-                goalText: "重いコイン　× 1",
-                stageDescription: "5枚の中から<br>重いコインを探して廃棄しておくれ",
-                generateCoinArray: [{ type: 'normalCoin', count: 4 }, { type: 'heavyCoin', count: 1 }],
-                targetCoinArray: [{ type: 'heavyCoin', count: 1 }],
-                targetExecutionCount1: 2,
-                targetExecutionCount2: 3,
-                electromagnetMaterials: ['steel'],
-                electromagnetActive: true,
-                miniBalanceActive: false
-            },
-            {
-                stageNumber: 3,
-                goalText: "重いコイン　× 2",
-                stageDescription: "5枚の中から重いコインを探して廃棄しておくれ",
-                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 2 }],
-                targetCoinArray: [{ type: 'heavyCoin', count: 2 }],
-                targetExecutionCount1: 2,
-                targetExecutionCount2: 3,
-                electromagnetMaterials: ['steel'],
-                electromagnetActive: true,
-                miniBalanceActive: true
-            },
-            {
-                stageNumber: 4,
-                goalText: "軽いコイン　× 1",
-                stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ",
-                generateCoinArray: [{ type: 'normalCoin', count: 11 }, { type: 'lightCoin', count: 1 }],
-                targetCoinArray: [{ type: 'lightCoin', count: 1 }],
-                targetExecutionCount1: 3,
-                targetExecutionCount2: 5,
-                electromagnetMaterials: ['steel'],
-                electromagnetActive: false,
-                miniBalanceActive: false
-            },
-            {
-                stageNumber: 5,
-                goalText: "軽いコイン　× 1 重いコイン　× 1",
-                stageDescription: "5枚の中から軽いコインと重いコインを探して廃棄しておくれ",
-                generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'lightCoin', count: 1 }, { type: 'heavyCoin', count: 1 }],
-                targetCoinArray: [{ type: 'lightCoin', count: 1 }, { type: 'heavyCoin', count: 1 }],
-                targetExecutionCount1: 3,
-                targetExecutionCount2: 4,
-                electromagnetMaterials: ['steel'],
-                electromagnetActive: false,
-                miniBalanceActive: true
-            }
+            { stageNumber: 1, goalText: "重いコイン　× 1", stageDescription: "4枚の中から重いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 2, targetExecutionCount2: 3, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 2, goalText: "N*10 H", stageDescription: "5枚の中から<br>重いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 2, targetExecutionCount2: 3, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: false },
+            { stageNumber: 3, goalText: "N*10 H L", stageDescription: "5枚の中から重いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 2, targetExecutionCount2: 3, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
+            { stageNumber: 4, goalText: "N*8 HH LL", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 8 }, { type: 'heavyCoin', count: 2 }, { type: 'lightCoin', count: 2 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 5, goalText: "N*10 VH*2 VL*2", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoinEx', count: 2 }, { type: 'lightCoinEx', count: 2 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 6, goalText: "N*5 H VH L VL", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 5 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }, { type: 'heavyCoinEx', count: 1 }, { type: 'lightCoinEx', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 7, goalText: "N*5 H L A G", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 5 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }, { type: 'goldCoin', count: 1 }, { type: 'almiCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 8, goalText: "N*9 A G", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 9 }, { type: 'goldCoin', count: 1 }, { type: 'almiCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
+            { stageNumber: 9, goalText: "N*3 H L A G VL VH", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 3 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }, { type: 'goldCoin', count: 1 }, { type: 'almiCoin', count: 1 }, { type: 'heavyCoinEx', count: 1 }, { type: 'lightCoinEx', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: false, miniBalanceActive: false },
         ];
 
         const rulePages = [
@@ -653,6 +641,14 @@
             `
         ];
 
+        // ▼▼▼ この部分から修正・追加 ▼▼▼
+        const titleScreen = document.getElementById('titleScreen');
+        const gameContainer = document.getElementById('gameContainer');
+        const mainFooter = document.querySelector('.main-footer');
+        const titleStoryButton = document.getElementById('titleStoryButton');
+        const titlePracticeButton = document.getElementById('titlePracticeButton');
+        // ▲▲▲ ここまで修正・追加 ▲▲▲
+
         const resetButton = document.getElementById('resetButton');
         const gameGoalText = document.getElementById('gameGoalText');
         const gameGoalImage = document.getElementById('gameGoalImage');
@@ -686,6 +682,13 @@
         const stageSelectWindow = document.getElementById('stageSelectWindow');
         const stageList = document.getElementById('stageList');
         const closeStageSelectWindowButton = document.getElementById('closeStageSelectWindow');
+        
+        // ▼▼▼ この部分から修正・追加 ▼▼▼
+        const storyModeWindow = document.getElementById('storyModeWindow');
+        const closeStoryModeWindowButton = document.getElementById('closeStoryModeWindow');
+        const startStoryButton = document.getElementById('startStoryButton');
+        // ▲▲▲ ここまで修正・追加 ▲▲▲
+
         const practiceModeWindow = document.getElementById('practiceModeWindow');
         const practiceStageList = document.getElementById('practiceStageList');
         const startPracticeButton = document.getElementById('startPracticeButton');
@@ -731,9 +734,14 @@
 
         async function saveStageEvaluation(stageNumber, stars) {
             if (isInPracticeMode) return;
+            const currentEvaluations = await getStageEvaluations();
+            if (stars <= (currentEvaluations[stageNumber] || 0)) {
+                return;
+            }
+
             if (!window.db || !window.isAuthReady || !window.userId || !window.firestoreCollection || !window.firestoreDoc || !window.firestoreGetDoc || !window.firestoreSetDoc) {
                 let evaluations = JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
-                evaluations[stageNumber] = stars;
+                evaluations[stageNumber] = Math.max(evaluations[stageNumber] || 0, stars);
                 localStorage.setItem('stageEvaluations', JSON.stringify(evaluations));
                 window.highestClearedStage = Math.max(window.highestClearedStage, stageNumber);
                 return;
@@ -754,7 +762,7 @@
             } catch (e) {
                 console.error("Error saving stage evaluation to Firestore:", e);
                 let evaluations = JSON.parse(localStorage.getItem('stageEvaluations') || '{}');
-                evaluations[stageNumber] = stars;
+                evaluations[stageNumber] = Math.max(evaluations[stageNumber] || 0, stars);
                 localStorage.setItem('stageEvaluations', JSON.stringify(evaluations));
                 window.highestClearedStage = Math.max(window.highestClearedStage, stageNumber);
             }
@@ -788,9 +796,31 @@
             }
         }
 
+        // ▼▼▼ この部分から修正・追加 ▼▼▼
+        function openStoryModeWindow() {
+            storyModeWindow.classList.remove('hidden');
+        }
+
+        function closeStoryModeWindow() {
+            storyModeWindow.classList.add('hidden');
+        }
+
+        function startStoryMode() {
+            closeStoryModeWindow();
+            titleScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            mainFooter.classList.remove('hidden');
+            openStageSelectWindow();
+        }
+        // ▲▲▲ ここまで修正・追加 ▲▲▲
+
+
         async function initializeGame() {
             setupMemoArea('memoTextarea1', 'memoIcon1', 'memoText1');
             setupMemoArea('memoTextarea2', 'memoIcon2', 'memoText2');
+            
+            resizeParticleCanvas();
+            window.addEventListener('resize', resizeParticleCanvas);
 
             const userIdDisplay = document.createElement('div');
             userIdDisplay.id = 'userIdDisplay';
@@ -798,6 +828,16 @@
             document.getElementById('gameContainer').appendChild(userIdDisplay);
             userIdDisplay.textContent = `User ID: ${window.userId || 'N/A'}`;
             await loadHighestClearedStage();
+            const resetCoinsButton = document.getElementById('resetCoinsButton');
+            resetCoinsButton.addEventListener('click', resetAllCoinsToArea);
+
+            // ▼▼▼ この部分から修正・追加 ▼▼▼
+            titleStoryButton.addEventListener('click', openStoryModeWindow);
+            titlePracticeButton.addEventListener('click', openPracticeModeWindow);
+            startStoryButton.addEventListener('click', startStoryMode);
+            closeStoryModeWindowButton.addEventListener('click', closeStoryModeWindow);
+            // ▲▲▲ ここまで修正・追加 ▲▲▲
+
             resetButton.addEventListener('click', resetGame);
             executeButton.addEventListener('click', comparePans);
             discardButton.addEventListener('click', checkResult);
@@ -847,7 +887,7 @@
             resultRestartButton.addEventListener('click', handleRestartGame);
             executeButton.classList.add('opacity-50', 'scale-105', 'cursor-not-allowed');
             executeButton.classList.remove('hover:bg-green-700', 'hover:scale-110');
-            openStageSelectWindow();
+            // openStageSelectWindow(); // 初回起動時のモーダル表示を削除
             updateSubAreaVisibility();
             updateAreaPlaceholders();
         }
@@ -855,6 +895,38 @@
         function resetGame() {
             if (!currentStage) return;
             loadStage(currentStage.stageNumber);
+        }
+
+        function resetAllCoinsToArea() {
+            balanceLeftPan = [];
+            balanceRightPan = [];
+            miniBalanceLeftPan = [];
+            miniBalanceRightPan = [];
+            electromagnetBox = [];
+
+            const coinsToReset = coins.filter(c => c.currentPosition !== 'trashBin');
+            
+            const coinAreaRect = coinArea.getBoundingClientRect();
+            const coinWidth = 50, coinHeight = 50, padding = 10;
+            const cols = Math.floor((coinAreaRect.width - 2 * padding) / (coinWidth + 5));
+
+            coinsToReset.forEach((coinData, index) => {
+                const coinElement = document.getElementById(`coin-${coinData.id}`);
+                if (coinElement) {
+                    coinArea.appendChild(coinElement);
+                    coinData.currentPosition = 'coinArea';
+                    
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    coinElement.style.position = 'absolute';
+                    coinElement.style.left = `${padding + col * (coinWidth + 5)}px`;
+                    coinElement.style.top = `${padding + row * (coinHeight + 5)}px`;
+                }
+            });
+
+            resetPanVisuals();
+            resetElectromagnetVisual();
+            updateAreaPlaceholders();
         }
 
         function loadStage(stageNumber) {
@@ -866,12 +938,19 @@
             updateSubAreaVisibility();
         }
 
-        function startGameForCurrentStage() {
+        async function startGameForCurrentStage() {
             if (!currentStage) return;
+
+            if (!isInPracticeMode) {
+                const stageEvaluations = await getStageEvaluations();
+                evaluationStars = stageEvaluations[currentStage.stageNumber] || 0;
+                updateEvaluationStarsDisplay();
+            }
+
             gameGoalText.textContent = `目標: ${currentStage.goalText}`;
             executionCount = isInPracticeMode ? currentStage.targetExecutionCount1 : 0;
             updateExecutionCountDisplay();
-            evaluationStars = 0;
+            
             resetPans();
             resetMiniPans();
             resetTrashBin();
@@ -1144,38 +1223,10 @@
             return [];
         }
 
-        function resetPans() {
-            balanceLeftPan = resetArea('leftPan', balanceLeftPan);
-            balanceRightPan = resetArea('rightPan', balanceRightPan);
-            resetPanVisuals();
-            resetElectromagnetVisual();
-            updateAreaPlaceholders();
-        }
-
-        function resetMiniPans() {
-            miniBalanceLeftPan = resetArea('leftMiniPan', miniBalanceLeftPan);
-            miniBalanceRightPan = resetArea('rightMiniPan', miniBalanceRightPan);
-            resetPanVisuals();
-            resetElectromagnetVisual();
-            updateAreaPlaceholders();
-        }
-
-        function resetTrashBin() {
-            trashBin = resetArea('trashBin', trashBin);
-            updateDiscardButtonState();
-            resetElectromagnetVisual();
-            updateAreaPlaceholders();
-        }
-
-        function resetElectromagnetBox() {
-            electromagnetBox = resetArea('electromagnetBox', electromagnetBox);
-            Array.from(electromagnetBoxElement.children).forEach(child => {
-                if (child.classList.contains('coin')) child.remove();
-            });
-            updateElectromagnetBoxPlaceholder();
-            resetElectromagnetVisual();
-            updateAreaPlaceholders();
-        }
+        function resetPans() { balanceLeftPan = resetArea('leftPan', balanceLeftPan); balanceRightPan = resetArea('rightPan', balanceRightPan); resetPanVisuals(); resetElectromagnetVisual(); updateAreaPlaceholders(); }
+        function resetMiniPans() { miniBalanceLeftPan = resetArea('leftMiniPan', miniBalanceLeftPan); miniBalanceRightPan = resetArea('rightMiniPan', miniBalanceRightPan); resetPanVisuals(); resetElectromagnetVisual(); updateAreaPlaceholders(); }
+        function resetTrashBin() { trashBin = resetArea('trashBin', trashBin); updateDiscardButtonState(); resetElectromagnetVisual(); updateAreaPlaceholders(); }
+        function resetElectromagnetBox() { electromagnetBox = resetArea('electromagnetBox', electromagnetBox); Array.from(electromagnetBoxElement.children).forEach(child => { if (child.classList.contains('coin')) child.remove(); }); updateElectromagnetBoxPlaceholder(); resetElectromagnetVisual(); updateAreaPlaceholders(); }
 
         function updateElectromagnetBoxPlaceholder() {
             let placeholderSpan = electromagnetBoxElement.querySelector('span');
@@ -1191,22 +1242,12 @@
             }
         }
 
-        function resetElectromagnetVisual() {
-            electromagnetBoxElement.classList.remove('bg-orange-100', 'border-orange-300', 'border-yellow-300');
-            electromagnetBoxElement.classList.add('bg-yellow-100', 'border-gray-300');
-            electromagnetBoxElement.style.transform = 'translateX(0)';
-        }
+        function resetElectromagnetVisual() { electromagnetBoxElement.classList.remove('bg-orange-100', 'border-orange-300', 'border-yellow-300'); electromagnetBoxElement.classList.add('bg-yellow-100', 'border-gray-300'); electromagnetBoxElement.style.transform = 'translateX(0)'; }
 
         function applyElectromagnetEffect() {
             const isActive = currentStage?.electromagnetActive;
-            if (!isActive || !currentStage.electromagnetMaterials?.length) {
-                resetElectromagnetVisual();
-                return;
-            }
-            const hasMagneticCoin = electromagnetBox.some(id => {
-                const coin = coins.find(c => c.id === id);
-                return coin && currentStage.electromagnetMaterials.includes(coin.material);
-            });
+            if (!isActive || !currentStage.electromagnetMaterials?.length) { resetElectromagnetVisual(); return; }
+            const hasMagneticCoin = electromagnetBox.some(id => { const coin = coins.find(c => c.id === id); return coin && currentStage.electromagnetMaterials.includes(coin.material); });
             const iconContainer = electromagnetArea.querySelector('.flex.flex-col');
             const moveAmount = electromagnetArea.clientWidth - electromagnetBoxElement.offsetWidth - (iconContainer?.offsetWidth + 8 || 0);
             electromagnetBoxElement.classList.remove('border-gray-300', 'border-yellow-300', 'border-orange-300');
@@ -1227,7 +1268,6 @@
                 pan.classList.remove('pan-highlight', 'border-green-300', 'border-sky-200', 'border-blue-300');
                 pan.classList.add('border-gray-300');
             });
-
             if (isInPracticeMode && executionCount <= 0) {
                 executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
                 executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
@@ -1238,31 +1278,10 @@
             }
         }
 
-        function updateExecutionCountDisplay() {
-            executionCountDisplay.textContent = executionCount;
-        }
-
-        function updateEvaluationStarsDisplay() {
-            evaluationStarsDisplay.innerHTML = Array(3).fill(0).map((_, i) =>
-                `<i class="fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}"></i>`
-            ).join('');
-        }
-
-        function updatePracticeProgressDisplay() {
-            practiceProgressDisplay.innerHTML = Array(5).fill(0).map((_, i) => {
-                let iconClass = 'fas text-2xl ';
-                if (i < currentPracticeStageIndex) iconClass += 'fa-box text-green-400';
-                else if (i === currentPracticeStageIndex) iconClass += 'fa-box-open text-blue-400';
-                else iconClass += 'fa-box text-gray-400';
-                return `<i class="${iconClass}"></i>`;
-            }).join('');
-        }
-
-        function updateDiscardButtonState() {
-            discardButton.disabled = trashBin.length === 0;
-            discardButton.classList.toggle('opacity-50', discardButton.disabled);
-            discardButton.classList.toggle('cursor-not-allowed', discardButton.disabled);
-        }
+        function updateExecutionCountDisplay() { executionCountDisplay.textContent = executionCount; }
+        function updateEvaluationStarsDisplay() { evaluationStarsDisplay.innerHTML = Array(3).fill(0).map((_, i) => `<i class="fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}"></i>`).join(''); }
+        function updatePracticeProgressDisplay() { practiceProgressDisplay.innerHTML = Array(5).fill(0).map((_, i) => { let iconClass = 'fas text-2xl '; if (i < currentPracticeStageIndex) iconClass += 'fa-box text-green-400'; else if (i === currentPracticeStageIndex) iconClass += 'fa-box-open text-blue-400'; else iconClass += 'fa-box text-gray-400'; return `<i class="${iconClass}"></i>`; }).join(''); }
+        function updateDiscardButtonState() { discardButton.disabled = trashBin.length === 0; discardButton.classList.toggle('opacity-50', discardButton.disabled); discardButton.classList.toggle('cursor-not-allowed', discardButton.disabled); }
 
         function comparePans() {
             const mainPansReady = balanceLeftPan.length > 0 && balanceRightPan.length > 0;
@@ -1273,26 +1292,14 @@
             const canUseMiniBalance = tempHighestClearedStage >= 2 && currentStage.miniBalanceActive;
 
             if ((!mainPansReady && (balanceLeftPan.length > 0 || balanceRightPan.length > 0)) ||
-                (canUseMiniBalance && !miniPansReady && (miniBalanceLeftPan.length > 0 || miniBalanceRightPan.length > 0))) {
-                showTemporaryMessage("天秤の両方の皿にコインを置いてください！", "bg-red-500");
-                return;
-            }
-
-            if (!mainPansReady && !(canUseMiniBalance && miniPansReady) && !(canUseElectromagnet && electromagnetBoxHasCoins)) {
-                showTemporaryMessage("比較できるコインがありません！", "bg-red-500");
-                return;
-            }
-
-            if (isInPracticeMode && executionCount <= 0) {
-                showTemporaryMessage("これ以上比較できません", "bg-red-500");
-                return;
-            }
+                (canUseMiniBalance && !miniPansReady && (miniBalanceLeftPan.length > 0 || miniBalanceRightPan.length > 0))) { showTemporaryMessage("天秤の両方の皿にコインを置いてください！", "bg-red-500"); return; }
+            if (!mainPansReady && !(canUseMiniBalance && miniPansReady) && !(canUseElectromagnet && electromagnetBoxHasCoins)) { showTemporaryMessage("比較できるコインがありません！", "bg-red-500"); return; }
+            if (isInPracticeMode && executionCount <= 0) { showTemporaryMessage("これ以上比較できません", "bg-red-500"); return; }
 
             if (mainPansReady) {
                 const leftWeight = balanceLeftPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
                 const rightWeight = balanceRightPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
-                [leftPanArea, rightPanArea].forEach(p => p.classList.add('pan-highlight', 'border-green-300'));
-                [leftPanArea, rightPanArea].forEach(p => p.classList.remove('border-gray-300'));
+                [leftPanArea, rightPanArea].forEach(p => { p.classList.add('pan-highlight', 'border-green-300'); p.classList.remove('border-gray-300'); });
                 if (leftWeight !== rightWeight) {
                     const heavierPan = leftWeight > rightWeight ? leftPanArea : rightPanArea;
                     const lighterPan = leftWeight < rightWeight ? leftPanArea : rightPanArea;
@@ -1302,12 +1309,10 @@
                     [leftPanArea, rightPanArea].forEach(p => p.classList.replace('border-green-300', 'border-sky-200'));
                 }
             }
-
             if (canUseMiniBalance && miniPansReady) {
                 const miniLeftWeight = miniBalanceLeftPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
                 const miniRightWeight = miniBalanceRightPan.reduce((sum, id) => sum + (coins.find(c => c.id === id)?.weight || 0), 0);
-                [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.add('pan-highlight', 'border-blue-300'));
-                [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.remove('border-gray-300'));
+                [leftMiniPanArea, rightMiniPanArea].forEach(p => { p.classList.add('pan-highlight', 'border-blue-300'); p.classList.remove('border-gray-300'); });
                 if (miniLeftWeight !== miniRightWeight) {
                     const heavierPan = miniLeftWeight > miniRightWeight ? leftMiniPanArea : rightMiniPanArea;
                     const lighterPan = miniLeftWeight < miniRightWeight ? leftMiniPanArea : rightMiniPanArea;
@@ -1317,16 +1322,11 @@
                      [leftMiniPanArea, rightMiniPanArea].forEach(p => p.classList.replace('border-blue-300', 'border-sky-200'));
                 }
             }
-
             if (canUseElectromagnet) applyElectromagnetEffect();
 
             if (isInPracticeMode) executionCount--; else executionCount++;
             updateExecutionCountDisplay();
-
-            if (isInPracticeMode && executionCount <= 0) {
-                executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110');
-                executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed');
-            }
+            if (isInPracticeMode && executionCount <= 0) { executeButton.classList.remove('bg-green-500', 'hover:bg-green-700', 'hover:scale-110'); executeButton.classList.add('bg-red-500', 'opacity-50', 'cursor-not-allowed'); }
         }
 
         function checkResult() {
@@ -1342,7 +1342,13 @@
                 return acc;
             }, {});
 
-            const isCorrect = JSON.stringify(trashCoinTypes) === JSON.stringify(targetCoinCounts) &&
+            const trashKeys = Object.keys(trashCoinTypes);
+            const targetKeys = Object.keys(targetCoinCounts);
+
+            const typesMatch = trashKeys.length === targetKeys.length &&
+                                 trashKeys.every(key => targetCoinCounts[key] === trashCoinTypes[key]);
+
+            const isCorrect = typesMatch &&
                               trashBin.length === currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0);
 
             if (isCorrect) {
@@ -1362,26 +1368,9 @@
             showResultWindow(isCorrect);
         }
 
-        function openRuleWindow() {
-            ruleWindow.classList.remove('hidden');
-            showRulePage(0);
-        }
-
-        function closeRuleWindow() {
-            ruleWindow.classList.add('hidden');
-        }
-
-        function showRulePage(index) {
-            if (index < 0 || index >= rulePages.length) return;
-            currentRulePageIndex = index;
-            ruleContent.innerHTML = rulePages[index];
-            rulePageIndicator.textContent = `${index + 1} / ${rulePages.length}`;
-            prevRulePageButton.disabled = index === 0;
-            prevRulePageButton.classList.toggle('opacity-50', index === 0);
-            nextRulePageButton.disabled = index === rulePages.length - 1;
-            nextRulePageButton.classList.toggle('opacity-50', index === rulePages.length - 1);
-        }
-
+        function openRuleWindow() { ruleWindow.classList.remove('hidden'); showRulePage(0); }
+        function closeRuleWindow() { ruleWindow.classList.add('hidden'); }
+        function showRulePage(index) { if (index < 0 || index >= rulePages.length) return; currentRulePageIndex = index; ruleContent.innerHTML = rulePages[index]; rulePageIndicator.textContent = `${index + 1} / ${rulePages.length}`; prevRulePageButton.disabled = index === 0; prevRulePageButton.classList.toggle('opacity-50', index === 0); nextRulePageButton.disabled = index === rulePages.length - 1; nextRulePageButton.classList.toggle('opacity-50', index === rulePages.length - 1); }
         function showPrevRulePage() { showRulePage(currentRulePageIndex - 1); }
         function showNextRulePage() { showRulePage(currentRulePageIndex + 1); }
 
@@ -1404,11 +1393,7 @@
                 stageList.appendChild(stageDiv);
             });
         }
-
-        function closeStageSelectWindow() {
-            stageSelectWindow.classList.add('hidden');
-        }
-
+        function closeStageSelectWindow() { stageSelectWindow.classList.add('hidden'); }
         function getRandomStagesForPractice(count) {
             const playableStages = stages.filter(s => s.stageNumber > 0).sort((a, b) => a.stageNumber - b.stageNumber);
             let availableStagesPool = [...playableStages];
@@ -1422,75 +1407,48 @@
                 return selected;
             }).filter(Boolean);
         }
-
-        function openPracticeModeWindow() {
-            closeStageSelectWindow();
-            practiceModeWindow.classList.remove('hidden');
-            practiceStageList.innerHTML = '';
-            practiceModeStages = getRandomStagesForPractice(5);
-            currentPracticeStageIndex = 0;
-        }
-
-        function closePracticeModeWindow() {
-            practiceModeWindow.classList.add('hidden');
-        }
-
-        function startPracticeMode() {
-            isInPracticeMode = true;
-            closePracticeModeWindow();
-            infoArea.classList.replace('from-blue-600', 'from-red-600');
-            infoArea.classList.replace('to-blue-800', 'to-red-800');
-            executionCountDisplay.classList.replace('text-white', 'text-red-500');
-            updatePracticeProgressDisplay();
-            if (practiceModeStages.length > 0) {
-                currentStage = practiceModeStages[0];
-                startGameForCurrentStage();
-            } else {
-                showTemporaryMessage("実践モードのステージがありません。", "bg-red-500");
-                endPracticeMode();
+        function openPracticeModeWindow() { closeStageSelectWindow(); practiceModeWindow.classList.remove('hidden'); practiceStageList.innerHTML = ''; practiceModeStages = getRandomStagesForPractice(5); currentPracticeStageIndex = 0; }
+        function closePracticeModeWindow() { practiceModeWindow.classList.add('hidden'); }
+        
+        // ▼▼▼ この部分を修正 ▼▼▼
+        function startPracticeMode() { 
+            if (!titleScreen.classList.contains('hidden')) {
+                titleScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                mainFooter.classList.remove('hidden');
             }
-        }
 
-        function loadNextPracticeStage() {
-            currentPracticeStageIndex++;
-            if (currentPracticeStageIndex < practiceModeStages.length) {
-                currentStage = practiceModeStages[currentPracticeStageIndex];
-                startGameForCurrentStage();
-                updatePracticeProgressDisplay();
-            } else {
-                showTemporaryMessage("実践モードを全てクリアしました！", "bg-green-500");
-                endPracticeMode();
-            }
+            isInPracticeMode = true; 
+            closePracticeModeWindow(); 
+            infoArea.classList.replace('from-blue-600', 'from-red-600'); 
+            infoArea.classList.replace('to-blue-800', 'to-red-800'); 
+            executionCountDisplay.classList.replace('text-white', 'text-red-500'); 
+            updatePracticeProgressDisplay(); 
+            if (practiceModeStages.length > 0) { 
+                currentStage = practiceModeStages[0]; 
+                startGameForCurrentStage(); 
+            } else { 
+                showTemporaryMessage("実践モードのステージがありません。", "bg-red-500"); 
+                endPracticeMode(); 
+            } 
         }
-
-        function endPracticeMode() {
-            isInPracticeMode = false;
-            infoArea.classList.replace('from-red-600', 'from-blue-600');
-            infoArea.classList.replace('to-red-800', 'to-blue-800');
-            executionCountDisplay.classList.replace('text-red-500', 'text-white');
-            updateSubAreaVisibility();
-            openStageSelectWindow();
-        }
-
-        function openStageDescriptionWindow(fromGoalText = false) {
-            if (!currentStage) {
-                showTemporaryMessage("ステージが選択されていません。", "bg-red-500");
-                return;
-            }
-            stageDescTitle.textContent = `ステージ ${currentStage.stageNumber}`;
-            stageDescDescription.innerHTML = currentStage.stageDescription;
-            stageDescGoal.textContent = `目標: ${currentStage.goalText}`;
-            stageDescriptionWindow.classList.remove('hidden');
-            stageDescStartButton.classList.toggle('hidden', fromGoalText);
-            closeDescWindowButton.classList.toggle('hidden', !fromGoalText);
-        }
-
-        function closeStageDescriptionWindow() {
-            stageDescriptionWindow.classList.add('hidden');
-        }
+        // ▲▲▲ ここまで修正 ▲▲▲
+        
+        function loadNextPracticeStage() { currentPracticeStageIndex++; if (currentPracticeStageIndex < practiceModeStages.length) { currentStage = practiceModeStages[currentPracticeStageIndex]; startGameForCurrentStage(); updatePracticeProgressDisplay(); } else { showTemporaryMessage("実践モードを全てクリアしました！", "bg-green-500"); endPracticeMode(); } }
+        function endPracticeMode() { isInPracticeMode = false; infoArea.classList.replace('from-red-600', 'from-blue-600'); infoArea.classList.replace('to-red-800', 'to-blue-800'); executionCountDisplay.classList.replace('text-red-500', 'text-white'); updateSubAreaVisibility(); openStageSelectWindow(); }
+        function openStageDescriptionWindow(fromGoalText = false) { if (!currentStage) { showTemporaryMessage("ステージが選択されていません。", "bg-red-500"); return; } stageDescTitle.textContent = `ステージ ${currentStage.stageNumber}`; stageDescDescription.innerHTML = currentStage.stageDescription; stageDescGoal.textContent = `目標: ${currentStage.goalText}`; stageDescriptionWindow.classList.remove('hidden'); stageDescStartButton.classList.toggle('hidden', fromGoalText); closeDescWindowButton.classList.toggle('hidden', !fromGoalText); }
+        function closeStageDescriptionWindow() { stageDescriptionWindow.classList.add('hidden'); }
 
         function showResultWindow(isCorrect) {
             resultWindow.classList.remove('hidden');
+
+            if (isCorrect) {
+                if (particles.length === 0) {
+                    createParticles();
+                    animateParticles();
+                }
+            }
+            
             resultStageInfo.textContent = `ステージ ${currentStage.stageNumber}`;
             resultGoal.textContent = currentStage.goalText;
             resultExecutionCountDisplay.classList.toggle('hidden', isInPracticeMode);
@@ -1517,20 +1475,13 @@
             if(isCorrect) {
                 const isLastPracticeStage = isInPracticeMode && currentPracticeStageIndex >= practiceModeStages.length - 1;
                 const isLastNormalStage = !isInPracticeMode && currentStage.stageNumber >= Math.max(...stages.map(s => s.stageNumber));
-
                 if (isInPracticeMode) {
-                    if (isLastPracticeStage) {
-                        resultEndPracticeButton.classList.remove('hidden');
-                    } else {
-                        resultNextButton.classList.remove('hidden');
-                    }
+                    if (isLastPracticeStage) { resultEndPracticeButton.classList.remove('hidden'); } else { resultNextButton.classList.remove('hidden'); }
                     resultRetryPracticeButton.classList.remove('hidden');
                     resultRetryPracticeButton.textContent = '最初から';
                 } else {
                     resultRetryButton.classList.remove('hidden');
-                    if (!isLastNormalStage) {
-                        resultNextButton.classList.remove('hidden');
-                    }
+                    if (!isLastNormalStage) { resultNextButton.classList.remove('hidden'); }
                 }
             } else {
                 if (isInPracticeMode) {
@@ -1543,91 +1494,37 @@
                     resultRestartButton.textContent = 'もう一度';
                 }
             }
-
-            [resultRetryButton, resultNextButton, resultEndPracticeButton, resultRetryPracticeButton, resultBackButton, resultRestartButton].forEach(btn => {
-                if (!btn.classList.contains('hidden')) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-            });
+            [resultRetryButton, resultNextButton, resultEndPracticeButton, resultRetryPracticeButton, resultBackButton, resultRestartButton].forEach(btn => { if (!btn.classList.contains('hidden')) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); } });
         }
 
-        function closeResultWindow() {
-            resultWindow.classList.add('hidden');
-        }
-
-        function loadNextStage() {
-            const nextStageNumber = currentStage.stageNumber + 1;
-            if (stages.some(s => s.stageNumber === nextStageNumber)) {
-                loadStage(nextStageNumber);
-            } else {
-                showTemporaryMessage("すべてのステージをクリアしました！", "bg-blue-500");
-                openStageSelectWindow();
-            }
-        }
-
-        function handleGoBackToGame() {
-            closeResultWindow();
-            resetPanVisuals();
-            if (!isInPracticeMode) {
-                executionCount++;
-                updateExecutionCountDisplay();
-            }
-        }
-
-        function handleRestartGame() {
-            closeResultWindow();
-            if (isInPracticeMode) openPracticeModeWindow();
-            else resetGame();
-        }
+        function closeResultWindow() { resultWindow.classList.add('hidden'); }
+        function loadNextStage() { const nextStageNumber = currentStage.stageNumber + 1; if (stages.some(s => s.stageNumber === nextStageNumber)) { loadStage(nextStageNumber); } else { showTemporaryMessage("すべてのステージをクリアしました！", "bg-blue-500"); openStageSelectWindow(); } }
+        function handleGoBackToGame() { closeResultWindow(); resetPanVisuals(); if (!isInPracticeMode) { executionCount++; updateExecutionCountDisplay(); } }
+        function handleRestartGame() { closeResultWindow(); if (isInPracticeMode) openPracticeModeWindow(); else resetGame(); }
 
         async function updateSubAreaVisibility() {
-            if (!currentStage) {
-                electromagnetArea.classList.add('hidden');
-                miniBalanceArea.classList.add('hidden');
-                return;
-            }
+            if (!currentStage) { electromagnetArea.classList.add('hidden'); miniBalanceArea.classList.add('hidden'); return; }
             const tempHighestClearedStage = isInPracticeMode ? Math.max(window.highestClearedStage, 2) : window.highestClearedStage;
-            
             const isElectromagnetVisible = tempHighestClearedStage >= 1;
             electromagnetArea.classList.toggle('hidden', !isElectromagnetVisible);
-            if(isElectromagnetVisible){
-                electromagnetBoxElement.classList.toggle('hidden', !currentStage.electromagnetActive);
-                electromagnetInactivePlaceholder.classList.toggle('hidden', currentStage.electromagnetActive);
-            }
-
+            if(isElectromagnetVisible){ electromagnetBoxElement.classList.toggle('hidden', !currentStage.electromagnetActive); electromagnetInactivePlaceholder.classList.toggle('hidden', currentStage.electromagnetActive); }
             const isMiniBalanceVisible = tempHighestClearedStage >= 2;
             miniBalanceArea.classList.toggle('hidden', !isMiniBalanceVisible);
-            if(isMiniBalanceVisible){
-                const isActive = currentStage.miniBalanceActive;
-                miniBalanceArea.querySelector('#leftMiniPanArea').classList.toggle('hidden', !isActive);
-                miniBalanceArea.querySelector('#rightMiniPanArea').classList.toggle('hidden', !isActive);
-                miniBalanceArea.querySelector('#miniBalanceLabel').classList.toggle('hidden', !isActive);
-                miniBalanceArea.querySelector('.fa-balance-scale').classList.toggle('hidden', !isActive);
-                miniBalanceInactivePlaceholder.classList.toggle('hidden', isActive);
-            }
-
+            if(isMiniBalanceVisible){ const isActive = currentStage.miniBalanceActive; miniBalanceArea.querySelector('#leftMiniPanArea').classList.toggle('hidden', !isActive); miniBalanceArea.querySelector('#rightMiniPanArea').classList.toggle('hidden', !isActive); miniBalanceArea.querySelector('#miniBalanceLabel').classList.toggle('hidden', !isActive); miniBalanceArea.querySelector('.fa-balance-scale').classList.toggle('hidden', !isActive); miniBalanceInactivePlaceholder.classList.toggle('hidden', isActive); }
             evaluationStarsDisplay.classList.toggle('hidden', isInPracticeMode);
             practiceProgressDisplay.classList.toggle('hidden', !isInPracticeMode);
-            if (isInPracticeMode) updatePracticeProgressDisplay();
-            else updateEvaluationStarsDisplay();
+            if (isInPracticeMode) updatePracticeProgressDisplay(); else updateEvaluationStarsDisplay();
         }
 
         function updateAreaPlaceholders() {
-            const toggleText = (elementId, hasContent) => {
-                document.getElementById(elementId)?.classList.toggle('hidden', hasContent);
-            };
-
+            const toggleText = (elementId, hasContent) => { document.getElementById(elementId)?.classList.toggle('hidden', hasContent); };
             toggleText('coinAreaPlaceholderText', coins.some(c => c.currentPosition === 'coinArea'));
             toggleText('trashBinPlaceholderText', trashBin.length > 0);
-            
             toggleText('leftPanPlaceholderText', balanceLeftPan.length > 0);
             toggleText('rightPanPlaceholderText', balanceRightPan.length > 0);
-            
             const miniBalanceUnlocked = window.highestClearedStage >= 2;
             const miniBalanceActiveForStage = currentStage ? currentStage.miniBalanceActive : false;
             const showMiniPanPlaceholders = miniBalanceUnlocked && miniBalanceActiveForStage;
-
             toggleText('leftMiniPanPlaceholderText', !showMiniPanPlaceholders || miniBalanceLeftPan.length > 0);
             toggleText('rightMiniPanPlaceholderText', !showMiniPanPlaceholders || miniBalanceRightPan.length > 0);
         }
@@ -1637,13 +1534,8 @@
             messageBox.className = `fixed bottom-8 left-1/2 transform -translate-x-1/2 ${bgColorClass} text-white py-3 px-6 rounded-full shadow-lg text-lg font-semibold z-[10000] transition-all duration-500 ease-out opacity-0 translate-y-10`;
             messageBox.textContent = message;
             document.body.appendChild(messageBox);
-            setTimeout(() => {
-                messageBox.classList.remove('opacity-0', 'translate-y-10');
-            }, 10);
-            setTimeout(() => {
-                messageBox.classList.add('opacity-0', 'translate-y-10');
-                messageBox.addEventListener('transitionend', () => messageBox.remove());
-            }, 3000);
+            setTimeout(() => { messageBox.classList.remove('opacity-0', 'translate-y-10'); }, 10);
+            setTimeout(() => { messageBox.classList.add('opacity-0', 'translate-y-10'); messageBox.addEventListener('transitionend', () => messageBox.remove()); }, 3000);
         }
     </script>
 </body>
