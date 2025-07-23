@@ -8,16 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* ▼▼▼ この部分を修正 ▼▼▼ */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
-            /* padding: 2rem; を削除 */
             box-sizing: border-box;
         }
-        /* ▲▲▲ bodyのpadding設定を削除しました ▲▲▲ */
-
-        /* ▼▼▼ この部分を修正 ▼▼▼ */
         #gameContainer {
             max-width: 1280px;
             max-height: 720px;
@@ -32,10 +27,8 @@
             background-color: #ffffff;
             position: relative;
             flex-shrink: 0;
-            margin: 2rem auto 0 auto; /* ゲーム画面を中央に配置し、上下マージンを追加 */
+            margin: 2rem auto 0 auto;
         }
-        /* ▲▲▲ marginプロパティを変更 ▲▲▲ */
-
         .pan-container {
             transition: transform 0.5s ease-in-out;
             position: relative;
@@ -87,15 +80,12 @@
         #electromagnetBox .fa-magnet { pointer-events: none; }
         #miniBalanceArea .fa-balance-scale { pointer-events: none; z-index: -1; }
 
-        /* ▼▼▼ この部分を修正 ▼▼▼ */
         .main-footer {
             max-width: 600px;
             text-align: center;
             color: #374151;
-            margin: 40px auto 2rem auto; /* フッターを中央に配置し、下マージンを調整 */
+            margin: 40px auto 2rem auto;
         }
-        /* ▲▲▲ marginプロパティを変更 ▲▲▲ */
-
         .main-footer a { color: #d8971d; text-decoration: none; transition: color 0.2s ease-in-out; font-size: 0.9rem; }
         .main-footer a:hover { color: #8a580c; text-decoration: underline; }
         .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; margin-bottom: 0.2rem; }
@@ -113,21 +103,22 @@
 </head>
 <body>
     <canvas id="particleCanvas"></canvas>
-
-    <div id="titleScreen" class="w-full h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-        <h1 class="text-6xl font-bold text-gray-800 mb-4 text-center">コイン天秤ゲーム</h1>
-        <p class="text-xl text-gray-600 mb-12 text-center">偽のコインを見つけ出す、論理と推理のパズル</p>
-        <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
-            <button id="titleStoryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
-                <i class="fas fa-book-reader mr-2"></i>ストーリーモード
-            </button>
-            <button id="titlePracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
-                <i class="fas fa-dumbbell mr-2"></i>実践モード
-            </button>
+    
+    <div id="gameContainer">
+        <div id="titleScreen" class="w-full h-full absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-100 p-4 rounded-xl">
+            <div class="absolute top-0 left-0 right-0 h-[70px] bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg rounded-t-xl"></div>
+            <h1 class="text-6xl font-bold text-gray-800 mb-4 text-center">コイン天秤ゲーム</h1>
+            <p class="text-xl text-gray-600 mb-12 text-center">偽のコインを見つけ出す、論理と推理のパズル</p>
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
+                <button id="titleStoryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
+                    <i class="fas fa-book-reader mr-2"></i>ストーリーモード
+                </button>
+                <button id="titlePracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
+                    <i class="fas fa-dumbbell mr-2"></i>実践モード
+                </button>
+            </div>
         </div>
-    </div>
-    <div id="gameContainer" class="hidden">
-    <script type="module">
+        <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
             import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
             import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -187,7 +178,7 @@
             });
         </script>
 
-        <div id="infoArea" class="information-area bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex items-center justify-between shadow-lg rounded-b-xl h-[10%] min-h-[70px]">
+        <div id="infoArea" class="information-area bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex items-center justify-between shadow-lg rounded-b-xl h-[10%] min-h-[70px] hidden">
             <button id="resetButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                 <i class="fas fa-redo-alt text-xl"></i>
             </button>
@@ -207,10 +198,13 @@
                 <button id="practiceModeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                     <i class="fas fa-dumbbell text-xl"></i>
                 </button>
+                <button id="titleButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-home text-xl"></i>
+                </button>
+                </div>
             </div>
-        </div>
 
-        <div class="game-board flex flex-grow p-4 space-x-4">
+        <div class="game-board flex flex-grow p-4 space-x-4 hidden">
             <div class="main-area w-2/3 flex flex-col space-y-4">
                 <div id="balanceArea" class="balance-area bg-white rounded-xl shadow-lg p-4 flex items-center justify-around flex-grow relative overflow-hidden">
                     <div id="leftPanArea" class="left-pan-area pan-container bg-gray-200 rounded-xl p-1 w-1/3 h-[90%] flex flex-wrap justify-center items-center border-4 border-gray-300 transition-all duration-500 ease-in-out">
@@ -401,8 +395,7 @@
             </div>
         </div>
     </div>
-
-    <footer class="main-footer hidden">
+    <footer class="main-footer">
     <div class="footer-links">
             <a href="https://example.com/portfolio" target="_blank" rel="noopener noreferrer">作品集</a>
             <a href="https://x.com/your_x_handle" target="_blank" rel="noopener noreferrer">X</a>
@@ -524,6 +517,7 @@
         let practiceModeStages = [];
         let currentPracticeStageIndex = 0;
         let isInPracticeMode = false;
+        let isInStoryMode = false;
 
         const coinColors = ['coin-blue', 'coin-red', 'coin-yellow', 'coin-green'];
         const coinTypes = {
@@ -641,13 +635,14 @@
             `
         ];
 
-        // ▼▼▼ この部分から修正・追加 ▼▼▼
+        // ▼▼▼ この部分を修正・変更 ▼▼▼
         const titleScreen = document.getElementById('titleScreen');
         const gameContainer = document.getElementById('gameContainer');
         const mainFooter = document.querySelector('.main-footer');
         const titleStoryButton = document.getElementById('titleStoryButton');
         const titlePracticeButton = document.getElementById('titlePracticeButton');
-        // ▲▲▲ ここまで修正・追加 ▲▲▲
+        const titleButton = document.getElementById('titleButton'); // 新規追加
+        // ▲▲▲ ここまで修正・変更 ▲▲▲
 
         const resetButton = document.getElementById('resetButton');
         const gameGoalText = document.getElementById('gameGoalText');
@@ -683,11 +678,9 @@
         const stageList = document.getElementById('stageList');
         const closeStageSelectWindowButton = document.getElementById('closeStageSelectWindow');
         
-        // ▼▼▼ この部分から修正・追加 ▼▼▼
         const storyModeWindow = document.getElementById('storyModeWindow');
         const closeStoryModeWindowButton = document.getElementById('closeStoryModeWindow');
         const startStoryButton = document.getElementById('startStoryButton');
-        // ▲▲▲ ここまで修正・追加 ▲▲▲
 
         const practiceModeWindow = document.getElementById('practiceModeWindow');
         const practiceStageList = document.getElementById('practiceStageList');
@@ -713,6 +706,7 @@
         const resultRestartButton = document.getElementById('resultRestartButton');
         const resultEndPracticeButton = document.getElementById('resultEndPracticeButton');
         const infoArea = document.getElementById('infoArea');
+        const gameBoard = document.querySelector('.game-board');
         let nextButtonClickTimeout = null;
         let retryButtonClickTimeout = null;
 
@@ -796,7 +790,6 @@
             }
         }
 
-        // ▼▼▼ この部分から修正・追加 ▼▼▼
         function openStoryModeWindow() {
             storyModeWindow.classList.remove('hidden');
         }
@@ -805,15 +798,21 @@
             storyModeWindow.classList.add('hidden');
         }
 
+        // ▼▼▼ 変更箇所: ゲームモードの開始とボタン表示の切り替え ▼▼▼
         function startStoryMode() {
             closeStoryModeWindow();
             titleScreen.classList.add('hidden');
-            gameContainer.classList.remove('hidden');
+            infoArea.classList.remove('hidden');
+            gameBoard.classList.remove('hidden');
             mainFooter.classList.remove('hidden');
+
+            isInStoryMode = true;
+            practiceModeButton.classList.add('hidden'); // 実践モードボタンを非表示
+            stageButton.classList.remove('hidden'); // ステージ選択ボタンを表示
+
             openStageSelectWindow();
         }
-        // ▲▲▲ ここまで修正・追加 ▲▲▲
-
+        // ▲▲▲ 変更ここまで ▲▲▲
 
         async function initializeGame() {
             setupMemoArea('memoTextarea1', 'memoIcon1', 'memoText1');
@@ -831,12 +830,20 @@
             const resetCoinsButton = document.getElementById('resetCoinsButton');
             resetCoinsButton.addEventListener('click', resetAllCoinsToArea);
 
-            // ▼▼▼ この部分から修正・追加 ▼▼▼
+            // ▼▼▼ 変更箇所: イベントリスナーの追加 ▼▼▼
             titleStoryButton.addEventListener('click', openStoryModeWindow);
             titlePracticeButton.addEventListener('click', openPracticeModeWindow);
             startStoryButton.addEventListener('click', startStoryMode);
             closeStoryModeWindowButton.addEventListener('click', closeStoryModeWindow);
-            // ▲▲▲ ここまで修正・追加 ▲▲▲
+            titleButton.addEventListener('click', () => { // タイトルボタンのイベントリスナー
+                titleScreen.classList.remove('hidden');
+                infoArea.classList.add('hidden');
+                gameBoard.classList.add('hidden');
+                mainFooter.classList.add('hidden');
+                isInStoryMode = false;
+                isInPracticeMode = false;
+            });
+            // ▲▲▲ 変更ここまで ▲▲▲
 
             resetButton.addEventListener('click', resetGame);
             executeButton.addEventListener('click', comparePans);
@@ -887,7 +894,6 @@
             resultRestartButton.addEventListener('click', handleRestartGame);
             executeButton.classList.add('opacity-50', 'scale-105', 'cursor-not-allowed');
             executeButton.classList.remove('hover:bg-green-700', 'hover:scale-110');
-            // openStageSelectWindow(); // 初回起動時のモーダル表示を削除
             updateSubAreaVisibility();
             updateAreaPlaceholders();
         }
@@ -1410,11 +1416,12 @@
         function openPracticeModeWindow() { closeStageSelectWindow(); practiceModeWindow.classList.remove('hidden'); practiceStageList.innerHTML = ''; practiceModeStages = getRandomStagesForPractice(5); currentPracticeStageIndex = 0; }
         function closePracticeModeWindow() { practiceModeWindow.classList.add('hidden'); }
         
-        // ▼▼▼ この部分を修正 ▼▼▼
+        // ▼▼▼ 変更箇所: 実践モードの開始とボタン表示の切り替え ▼▼▼
         function startPracticeMode() { 
             if (!titleScreen.classList.contains('hidden')) {
                 titleScreen.classList.add('hidden');
-                gameContainer.classList.remove('hidden');
+                infoArea.classList.remove('hidden');
+                gameBoard.classList.remove('hidden');
                 mainFooter.classList.remove('hidden');
             }
 
@@ -1424,6 +1431,10 @@
             infoArea.classList.replace('to-blue-800', 'to-red-800'); 
             executionCountDisplay.classList.replace('text-white', 'text-red-500'); 
             updatePracticeProgressDisplay(); 
+
+            stageButton.classList.add('hidden'); // ステージ選択ボタンを非表示
+            practiceModeButton.classList.remove('hidden'); // 実践モードボタンを表示
+
             if (practiceModeStages.length > 0) { 
                 currentStage = practiceModeStages[0]; 
                 startGameForCurrentStage(); 
@@ -1432,7 +1443,7 @@
                 endPracticeMode(); 
             } 
         }
-        // ▲▲▲ ここまで修正 ▲▲▲
+        // ▲▲▲ 変更ここまで ▲▲▲
         
         function loadNextPracticeStage() { currentPracticeStageIndex++; if (currentPracticeStageIndex < practiceModeStages.length) { currentStage = practiceModeStages[currentPracticeStageIndex]; startGameForCurrentStage(); updatePracticeProgressDisplay(); } else { showTemporaryMessage("実践モードを全てクリアしました！", "bg-green-500"); endPracticeMode(); } }
         function endPracticeMode() { isInPracticeMode = false; infoArea.classList.replace('from-red-600', 'from-blue-600'); infoArea.classList.replace('to-red-800', 'to-blue-800'); executionCountDisplay.classList.replace('text-red-500', 'text-white'); updateSubAreaVisibility(); openStageSelectWindow(); }
