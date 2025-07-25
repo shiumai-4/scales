@@ -201,8 +201,8 @@
                 <button id="titleButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                     <i class="fas fa-home text-xl"></i>
                 </button>
-                </div>
             </div>
+        </div>
 
         <div class="game-board flex flex-grow p-4 space-x-4 hidden">
             <div class="main-area w-2/3 flex flex-col space-y-4">
@@ -289,8 +289,8 @@
                         </button>
                     </div>
                 </div>
+                </div>
             </div>
-        </div>
 
         <div id="ruleWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
             <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-3/4 lg:w-1/2 max-h-[560px] max-w-[800px] min-h-[200px] flex flex-col">
@@ -497,6 +497,20 @@
             }
         }
 
+        function fadeOutParticlesFast() {
+            if (particles.length > 0) {
+                const FADE_OUT_FRAMES = 0.7 * 60; // 0.7秒 (60fpsを想定)
+                particles.forEach(p => {
+                    const remainingLife = p.maxLife - p.life;
+                    // 残りの寿命が0.7秒より長い場合、強制的に0.7秒に設定する
+                    if (remainingLife > FADE_OUT_FRAMES) {
+                        p.maxLife = p.life + FADE_OUT_FRAMES;
+                    }
+                });
+            }
+        }
+        
+
         let currentDraggedCoinElement = null;
         let shiftX = 0, shiftY = 0;
         let isPointerDown = false;
@@ -530,7 +544,6 @@
             goldCoin: { weight: 11, material: 'gold' },
             heavyCoinEx: { weight: 12, material: 'steel' },
             lightCoinEx: { weight: 8, material: 'steel' },
-
             differentCoin: { weight: 10, material: 'steel' },
         };
 
@@ -635,14 +648,12 @@
             `
         ];
 
-        // ▼▼▼ この部分を修正・変更 ▼▼▼
         const titleScreen = document.getElementById('titleScreen');
         const gameContainer = document.getElementById('gameContainer');
         const mainFooter = document.querySelector('.main-footer');
         const titleStoryButton = document.getElementById('titleStoryButton');
         const titlePracticeButton = document.getElementById('titlePracticeButton');
-        const titleButton = document.getElementById('titleButton'); // 新規追加
-        // ▲▲▲ ここまで修正・変更 ▲▲▲
+        const titleButton = document.getElementById('titleButton');
 
         const resetButton = document.getElementById('resetButton');
         const gameGoalText = document.getElementById('gameGoalText');
@@ -798,21 +809,19 @@
             storyModeWindow.classList.add('hidden');
         }
 
-        // ▼▼▼ 変更箇所: ゲームモードの開始とボタン表示の切り替え ▼▼▼
         function startStoryMode() {
             closeStoryModeWindow();
             titleScreen.classList.add('hidden');
             infoArea.classList.remove('hidden');
             gameBoard.classList.remove('hidden');
-            mainFooter.classList.remove('hidden');
 
             isInStoryMode = true;
-            practiceModeButton.classList.add('hidden'); // 実践モードボタンを非表示
-            stageButton.classList.remove('hidden'); // ステージ選択ボタンを表示
+            isInPracticeMode = false;
+            practiceModeButton.classList.add('hidden');
+            stageButton.classList.remove('hidden');
 
             openStageSelectWindow();
         }
-        // ▲▲▲ 変更ここまで ▲▲▲
 
         async function initializeGame() {
             setupMemoArea('memoTextarea1', 'memoIcon1', 'memoText1');
@@ -821,28 +830,25 @@
             resizeParticleCanvas();
             window.addEventListener('resize', resizeParticleCanvas);
 
+            const subArea = document.querySelector('.sub-area');
             const userIdDisplay = document.createElement('div');
             userIdDisplay.id = 'userIdDisplay';
-            userIdDisplay.className = 'absolute top-2 right-2 text-xs text-gray-400';
-            document.getElementById('gameContainer').appendChild(userIdDisplay);
+            userIdDisplay.className = 'text-xs text-gray-400 text-right pr-2 mt-auto';
+            subArea.appendChild(userIdDisplay);
             userIdDisplay.textContent = `User ID: ${window.userId || 'N/A'}`;
+
             await loadHighestClearedStage();
             const resetCoinsButton = document.getElementById('resetCoinsButton');
             resetCoinsButton.addEventListener('click', resetAllCoinsToArea);
 
-            // ▼▼▼ 変更箇所: イベントリスナーの追加 ▼▼▼
             titleStoryButton.addEventListener('click', openStoryModeWindow);
-            titlePracticeButton.addEventListener('click', openPracticeModeWindow);
+            titlePracticeButton.addEventListener('click', () => openPracticeModeWindow(true));
             startStoryButton.addEventListener('click', startStoryMode);
             closeStoryModeWindowButton.addEventListener('click', closeStoryModeWindow);
-            titleButton.addEventListener('click', () => { // タイトルボタンのイベントリスナー
-                titleScreen.classList.remove('hidden');
-                infoArea.classList.add('hidden');
-                gameBoard.classList.add('hidden');
-                mainFooter.classList.add('hidden');
-                isInStoryMode = false;
-                isInPracticeMode = false;
-            });
+
+            // ▼▼▼ 変更箇所: titleButtonのイベントリスナー ▼▼▼
+            // resetToTitleScreen関数を呼び出すように変更
+            titleButton.addEventListener('click', resetToTitleScreen);
             // ▲▲▲ 変更ここまで ▲▲▲
 
             resetButton.addEventListener('click', resetGame);
@@ -855,7 +861,7 @@
             });
             gameGoalText.addEventListener('click', () => openStageDescriptionWindow(true));
             gameGoalImage.addEventListener('click', () => openStageDescriptionWindow(true));
-            practiceModeButton.addEventListener('click', openPracticeModeWindow);
+            practiceModeButton.addEventListener('click', () => openPracticeModeWindow(true));
             closeRuleWindowButton.addEventListener('click', closeRuleWindow);
             prevRulePageButton.addEventListener('click', showPrevRulePage);
             nextRulePageButton.addEventListener('click', showNextRulePage);
@@ -864,9 +870,11 @@
             startPracticeButton.addEventListener('click', startPracticeMode);
             stageDescStartButton.addEventListener('click', startGameForCurrentStage);
             closeDescWindowButton.addEventListener('click', closeStageDescriptionWindow);
+            
             resultRetryButton.addEventListener('click', () => {
                 if (retryButtonClickTimeout) return;
                 retryButtonClickTimeout = setTimeout(() => { retryButtonClickTimeout = null; }, 500);
+                fadeOutParticlesFast();
                 resultRetryButton.disabled = true;
                 resultRetryButton.classList.add('opacity-50', 'cursor-not-allowed');
                 closeResultWindow();
@@ -876,20 +884,29 @@
             resultNextButton.addEventListener('click', () => {
                 if (nextButtonClickTimeout) return;
                 nextButtonClickTimeout = setTimeout(() => { nextButtonClickTimeout = null; }, 500);
+                fadeOutParticlesFast();
                 resultNextButton.disabled = true;
                 resultNextButton.classList.add('opacity-50', 'cursor-not-allowed');
                 closeResultWindow();
                 if (isInPracticeMode) loadNextPracticeStage();
                 else loadNextStage();
             });
+
+            // ▼▼▼ 変更箇所: resultEndPracticeButtonのイベントリスナー ▼▼▼
             resultEndPracticeButton.addEventListener('click', () => {
+                fadeOutParticlesFast();
                 closeResultWindow();
-                endPracticeMode();
+                // 既存の処理の代わりにresetToTitleScreen関数を呼び出す
+                resetToTitleScreen();
             });
+            // ▲▲▲ 変更ここまで ▲▲▲
+            
             resultRetryPracticeButton.addEventListener('click', () => {
+                fadeOutParticlesFast();
                 closeResultWindow();
-                openPracticeModeWindow();
+                openPracticeModeWindow(false);
             });
+
             resultBackButton.addEventListener('click', handleGoBackToGame);
             resultRestartButton.addEventListener('click', handleRestartGame);
             executeButton.classList.add('opacity-50', 'scale-105', 'cursor-not-allowed');
@@ -1413,27 +1430,33 @@
                 return selected;
             }).filter(Boolean);
         }
-        function openPracticeModeWindow() { closeStageSelectWindow(); practiceModeWindow.classList.remove('hidden'); practiceStageList.innerHTML = ''; practiceModeStages = getRandomStagesForPractice(5); currentPracticeStageIndex = 0; }
+        function openPracticeModeWindow(showCloseButton = true) {
+            closeStageSelectWindow();
+            practiceModeWindow.classList.remove('hidden');
+            practiceStageList.innerHTML = '';
+            practiceModeStages = getRandomStagesForPractice(5);
+            currentPracticeStageIndex = 0;
+            closePracticeModeWindowButton.classList.toggle('hidden', !showCloseButton);
+        }
         function closePracticeModeWindow() { practiceModeWindow.classList.add('hidden'); }
         
-        // ▼▼▼ 変更箇所: 実践モードの開始とボタン表示の切り替え ▼▼▼
         function startPracticeMode() { 
             if (!titleScreen.classList.contains('hidden')) {
                 titleScreen.classList.add('hidden');
                 infoArea.classList.remove('hidden');
                 gameBoard.classList.remove('hidden');
-                mainFooter.classList.remove('hidden');
             }
 
             isInPracticeMode = true; 
+            isInStoryMode = false;
             closePracticeModeWindow(); 
             infoArea.classList.replace('from-blue-600', 'from-red-600'); 
             infoArea.classList.replace('to-blue-800', 'to-red-800'); 
             executionCountDisplay.classList.replace('text-white', 'text-red-500'); 
             updatePracticeProgressDisplay(); 
 
-            stageButton.classList.add('hidden'); // ステージ選択ボタンを非表示
-            practiceModeButton.classList.remove('hidden'); // 実践モードボタンを表示
+            stageButton.classList.add('hidden');
+            practiceModeButton.classList.remove('hidden');
 
             if (practiceModeStages.length > 0) { 
                 currentStage = practiceModeStages[0]; 
@@ -1443,7 +1466,6 @@
                 endPracticeMode(); 
             } 
         }
-        // ▲▲▲ 変更ここまで ▲▲▲
         
         function loadNextPracticeStage() { currentPracticeStageIndex++; if (currentPracticeStageIndex < practiceModeStages.length) { currentStage = practiceModeStages[currentPracticeStageIndex]; startGameForCurrentStage(); updatePracticeProgressDisplay(); } else { showTemporaryMessage("実践モードを全てクリアしました！", "bg-green-500"); endPracticeMode(); } }
         function endPracticeMode() { isInPracticeMode = false; infoArea.classList.replace('from-red-600', 'from-blue-600'); infoArea.classList.replace('to-red-800', 'to-blue-800'); executionCountDisplay.classList.replace('text-red-500', 'text-white'); updateSubAreaVisibility(); openStageSelectWindow(); }
@@ -1487,9 +1509,13 @@
                 const isLastPracticeStage = isInPracticeMode && currentPracticeStageIndex >= practiceModeStages.length - 1;
                 const isLastNormalStage = !isInPracticeMode && currentStage.stageNumber >= Math.max(...stages.map(s => s.stageNumber));
                 if (isInPracticeMode) {
-                    if (isLastPracticeStage) { resultEndPracticeButton.classList.remove('hidden'); } else { resultNextButton.classList.remove('hidden'); }
-                    resultRetryPracticeButton.classList.remove('hidden');
-                    resultRetryPracticeButton.textContent = '最初から';
+                    if (isLastPracticeStage) {
+                        resultEndPracticeButton.classList.remove('hidden');
+                        resultRetryPracticeButton.classList.remove('hidden');
+                        resultRetryPracticeButton.textContent = '最初から';
+                    } else {
+                        resultNextButton.classList.remove('hidden');
+                    }
                 } else {
                     resultRetryButton.classList.remove('hidden');
                     if (!isLastNormalStage) { resultNextButton.classList.remove('hidden'); }
@@ -1511,7 +1537,11 @@
         function closeResultWindow() { resultWindow.classList.add('hidden'); }
         function loadNextStage() { const nextStageNumber = currentStage.stageNumber + 1; if (stages.some(s => s.stageNumber === nextStageNumber)) { loadStage(nextStageNumber); } else { showTemporaryMessage("すべてのステージをクリアしました！", "bg-blue-500"); openStageSelectWindow(); } }
         function handleGoBackToGame() { closeResultWindow(); resetPanVisuals(); if (!isInPracticeMode) { executionCount++; updateExecutionCountDisplay(); } }
-        function handleRestartGame() { closeResultWindow(); if (isInPracticeMode) openPracticeModeWindow(); else resetGame(); }
+        function handleRestartGame() {
+            closeResultWindow();
+            if (isInPracticeMode) openPracticeModeWindow(false);
+            else resetGame();
+        }
 
         async function updateSubAreaVisibility() {
             if (!currentStage) { electromagnetArea.classList.add('hidden'); miniBalanceArea.classList.add('hidden'); return; }
@@ -1547,6 +1577,50 @@
             document.body.appendChild(messageBox);
             setTimeout(() => { messageBox.classList.remove('opacity-0', 'translate-y-10'); }, 10);
             setTimeout(() => { messageBox.classList.add('opacity-0', 'translate-y-10'); messageBox.addEventListener('transitionend', () => messageBox.remove()); }, 3000);
+        }
+
+        function resetToTitleScreen() {
+            // UIの表示/非表示をタイトル画面に設定
+            titleScreen.classList.remove('hidden');
+            infoArea.classList.add('hidden');
+            gameBoard.classList.add('hidden');
+
+            // モードフラグをリセット
+            isInStoryMode = false;
+            isInPracticeMode = false;
+
+            // ゲームの状態変数を完全にリセット
+            currentStage = null;
+            executionCount = 0;
+            coins = [];
+            balanceLeftPan = [];
+            balanceRightPan = [];
+            miniBalanceLeftPan = [];
+            miniBalanceRightPan = [];
+            trashBin = [];
+            electromagnetBox = [];
+            
+            // ゲームボード上の全てのコイン要素を削除
+            const coinElements = document.querySelectorAll('.coin');
+            coinElements.forEach(coin => coin.remove());
+
+            // インフォメーションエリアのUIをデフォルト（青色）にリセット
+            infoArea.classList.replace('from-red-600', 'from-blue-600');
+            infoArea.classList.replace('to-red-800', 'to-blue-800');
+            executionCountDisplay.classList.replace('text-red-500', 'text-white');
+            updateExecutionCountDisplay();
+            
+            // ゲーム目標テキストと評価表示をリセット
+            gameGoalText.textContent = '目標: ステージを選択してください';
+            evaluationStars = 0;
+            updateEvaluationStarsDisplay();
+            
+            // 実践モード用の進捗表示を隠し、ストーリーモード用の星表示に切り替え
+            practiceProgressDisplay.classList.add('hidden');
+            evaluationStarsDisplay.classList.remove('hidden');
+
+            // 各エリアのプレースホルダー表示を更新
+            updateAreaPlaceholders();
         }
     </script>
 </body>
