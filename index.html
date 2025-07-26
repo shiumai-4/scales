@@ -79,6 +79,9 @@
         #miniBalanceLabel,
         #electromagnetBox .fa-magnet { pointer-events: none; }
         #miniBalanceArea .fa-balance-scale { pointer-events: none; z-index: -1; }
+        #titleInfoArea {
+            z-index: 51; /* #titleScreen(z-50)より手前に表示 */
+        }
 
         .main-footer {
             max-width: 600px;
@@ -106,16 +109,24 @@
     
     <div id="gameContainer">
         <div id="titleScreen" class="w-full h-full absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-100 p-4 rounded-xl">
+            <div id="titleInfoArea" class="absolute top-0 right-0 p-4">
+                <button id="settingsButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    <i class="fas fa-cog text-xl"></i>
+                </button>
+            </div>
             <div class="absolute top-0 left-0 right-0 h-[70px] bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg rounded-t-xl"></div>
             <h1 class="text-6xl font-bold text-gray-800 mb-4 text-center">コイン天秤ゲーム</h1>
             <p class="text-xl text-gray-600 mb-12 text-center">偽のコインを見つけ出す、論理と推理のパズル</p>
-            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 items-center md:items-start">
                 <button id="titleStoryButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
                     <i class="fas fa-book-reader mr-2"></i>ストーリーモード
                 </button>
-                <button id="titlePracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
-                    <i class="fas fa-dumbbell mr-2"></i>実践モード
-                </button>
+                <div class="flex flex-col items-center">
+                    <button id="titlePracticeButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-2xl">
+                        <i class="fas fa-dumbbell mr-2"></i>実践モード
+                    </button>
+                    <p id="practiceClearCountDisplay" class="text-gray-500 mt-2 text-sm"></p>
+                </div>
             </div>
         </div>
         <script type="module">
@@ -394,6 +405,30 @@
                 </div>
             </div>
         </div>
+        <div id="settingsWindow" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-xl shadow-2xl p-8 w-11/12 md:w-1/3 max-w-[500px] flex flex-col">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b-2 pb-2">設定</h2>
+                <div class="space-y-6 flex-grow">
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg text-gray-700"><i class="fas fa-music mr-2 text-blue-500"></i>BGM</span>
+                        <label for="bgmToggle" class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="bgmToggle" class="sr-only peer">
+                            <div class="w-14 h-8 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg text-gray-700"><i class="fas fa-volume-up mr-2 text-green-500"></i>効果音 (SE)</span>
+                        <label for="seToggle" class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="seToggle" class="sr-only peer">
+                            <div class="w-14 h-8 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    </div>
+                </div>
+                <button id="closeSettingsWindow" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-8 transition duration-300 ease-in-out w-fit mx-auto">
+                    閉じる
+                </button>
+            </div>
+        </div>
     </div>
     <footer class="main-footer">
     <div class="footer-links">
@@ -420,6 +455,65 @@
         const particleCtx = particleCanvas.getContext('2d');
         let particles = [];
         const particleColors = ['#60a5fa', '#ef4444', '#facc15', '#22c55e', '#a78bfa', '#f472b6'];
+
+        // ▼▼▼ 音声管理オブジェクトを追加 ▼▼▼
+        const audioManager = {
+            isBgmEnabled: true,
+            isSeEnabled: true,
+            currentBgm: null,
+
+            init() {
+                this.isBgmEnabled = localStorage.getItem('bgmEnabled') !== 'false';
+                this.isSeEnabled = localStorage.getItem('seEnabled') !== 'false';
+            },
+
+            toggleBgm(playClickSe = true) {
+                if(playClickSe) this.playSe('click');
+                this.isBgmEnabled = !this.isBgmEnabled;
+                localStorage.setItem('bgmEnabled', this.isBgmEnabled);
+                if (!this.isBgmEnabled) {
+                    this.stopBgm();
+                } else {
+                    if (titleScreen && !titleScreen.classList.contains('hidden')) this.playBgm('title');
+                    else if(isInStoryMode) this.playBgm('story');
+                    else if(isInPracticeMode) this.playBgm('practice');
+                }
+                console.log(`BGM is now ${this.isBgmEnabled ? 'ON' : 'OFF'}`);
+            },
+
+            toggleSe(playClickSe = true) {
+                if(playClickSe) this.playSe('click');
+                this.isSeEnabled = !this.isSeEnabled;
+                localStorage.setItem('seEnabled', this.isSeEnabled);
+                console.log(`SE is now ${this.isSeEnabled ? 'ON' : 'OFF'}`);
+            },
+
+            playBgm(type) {
+                if (this.currentBgm === type && this.currentBgm !== null) return;
+                this.stopBgm();
+                this.currentBgm = type;
+                if (this.isBgmEnabled) {
+                    console.log(`🎵 Playing BGM: ${type}`);
+                    // 実際のBGM再生処理をここに記述
+                }
+            },
+            
+            stopBgm() {
+                if (this.currentBgm) {
+                    console.log(`⏹ Stopping BGM: ${this.currentBgm}`);
+                    // 実際のBGM停止処理をここに記述
+                    this.currentBgm = null;
+                }
+            },
+
+            playSe(type) {
+                if (this.isSeEnabled) {
+                    console.log(`🔊 Playing SE: ${type}`);
+                    // 実際のSE再生処理をここに記述
+                }
+            }
+        };
+        // ▲▲▲ ここまで ▲▲▲
 
         function resizeParticleCanvas() {
             particleCanvas.width = window.innerWidth;
@@ -502,7 +596,6 @@
                 const FADE_OUT_FRAMES = 0.7 * 60; // 0.7秒 (60fpsを想定)
                 particles.forEach(p => {
                     const remainingLife = p.maxLife - p.life;
-                    // 残りの寿命が0.7秒より長い場合、強制的に0.7秒に設定する
                     if (remainingLife > FADE_OUT_FRAMES) {
                         p.maxLife = p.life + FADE_OUT_FRAMES;
                     }
@@ -510,7 +603,6 @@
             }
         }
         
-
         let currentDraggedCoinElement = null;
         let shiftX = 0, shiftY = 0;
         let isPointerDown = false;
@@ -552,7 +644,7 @@
             { stageNumber: 2, goalText: "N*10 H", stageDescription: "5枚の中から<br>重いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 2, targetExecutionCount2: 3, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
             { stageNumber: 3, goalText: "N*10 H L", stageDescription: "5枚の中から重いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 2, targetExecutionCount2: 3, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
             { stageNumber: 4, goalText: "N*8 HH LL", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 8 }, { type: 'heavyCoin', count: 2 }, { type: 'lightCoin', count: 2 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
-            { stageNumber: 5, goalText: "N*10 VH*2 VL*2", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 10 }, { type: 'heavyCoinEx', count: 2 }, { type: 'lightCoinEx', count: 2 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
+            { stageNumber: 5, goalText: "N*8 VH*2 VL*2", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 8 }, { type: 'heavyCoinEx', count: 2 }, { type: 'lightCoinEx', count: 2 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
             { stageNumber: 6, goalText: "N*5 H VH L VL", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 5 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }, { type: 'heavyCoinEx', count: 1 }, { type: 'lightCoinEx', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
             { stageNumber: 7, goalText: "N*5 H L A G", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 5 }, { type: 'heavyCoin', count: 1 }, { type: 'lightCoin', count: 1 }, { type: 'goldCoin', count: 1 }, { type: 'almiCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
             { stageNumber: 8, goalText: "N*9 A G", stageDescription: "12枚の中から軽いコインを探して廃棄しておくれ", generateCoinArray: [{ type: 'normalCoin', count: 9 }, { type: 'goldCoin', count: 1 }, { type: 'almiCoin', count: 1 }], targetCoinArray: [{ type: 'normalCoin', count: 1 }], targetExecutionCount1: 3, targetExecutionCount2: 5, electromagnetMaterials: ['steel'], electromagnetActive: true, miniBalanceActive: true },
@@ -802,14 +894,18 @@
         }
 
         function openStoryModeWindow() {
+            audioManager.playSe('click');
             storyModeWindow.classList.remove('hidden');
         }
 
         function closeStoryModeWindow() {
+            audioManager.playSe('click');
             storyModeWindow.classList.add('hidden');
         }
 
         function startStoryMode() {
+            audioManager.playSe('click');
+            audioManager.playBgm('story');
             closeStoryModeWindow();
             titleScreen.classList.add('hidden');
             infoArea.classList.remove('hidden');
@@ -824,6 +920,8 @@
         }
 
         async function initializeGame() {
+            audioManager.init();
+            
             setupMemoArea('memoTextarea1', 'memoIcon1', 'memoText1');
             setupMemoArea('memoTextarea2', 'memoIcon2', 'memoText2');
             
@@ -838,19 +936,28 @@
             userIdDisplay.textContent = `User ID: ${window.userId || 'N/A'}`;
 
             await loadHighestClearedStage();
+            
+            // DOM Elements
             const resetCoinsButton = document.getElementById('resetCoinsButton');
-            resetCoinsButton.addEventListener('click', resetAllCoinsToArea);
+            const settingsButton = document.getElementById('settingsButton');
+            const settingsWindow = document.getElementById('settingsWindow');
+            const closeSettingsWindow = document.getElementById('closeSettingsWindow');
+            const bgmToggle = document.getElementById('bgmToggle');
+            const seToggle = document.getElementById('seToggle');
+
+            // Event Listeners
+            const buttonsWithCustomSe = ['executeButton'];
+            document.querySelectorAll('button').forEach(btn => {
+                if (!buttonsWithCustomSe.includes(btn.id)) {
+                    btn.addEventListener('click', () => audioManager.playSe('click'));
+                }
+            });
 
             titleStoryButton.addEventListener('click', openStoryModeWindow);
             titlePracticeButton.addEventListener('click', () => openPracticeModeWindow(true));
             startStoryButton.addEventListener('click', startStoryMode);
             closeStoryModeWindowButton.addEventListener('click', closeStoryModeWindow);
-
-            // ▼▼▼ 変更箇所: titleButtonのイベントリスナー ▼▼▼
-            // resetToTitleScreen関数を呼び出すように変更
             titleButton.addEventListener('click', resetToTitleScreen);
-            // ▲▲▲ 変更ここまで ▲▲▲
-
             resetButton.addEventListener('click', resetGame);
             executeButton.addEventListener('click', comparePans);
             discardButton.addEventListener('click', checkResult);
@@ -870,6 +977,7 @@
             startPracticeButton.addEventListener('click', startPracticeMode);
             stageDescStartButton.addEventListener('click', startGameForCurrentStage);
             closeDescWindowButton.addEventListener('click', closeStageDescriptionWindow);
+            resetCoinsButton.addEventListener('click', resetAllCoinsToArea);
             
             resultRetryButton.addEventListener('click', () => {
                 if (retryButtonClickTimeout) return;
@@ -892,14 +1000,11 @@
                 else loadNextStage();
             });
 
-            // ▼▼▼ 変更箇所: resultEndPracticeButtonのイベントリスナー ▼▼▼
             resultEndPracticeButton.addEventListener('click', () => {
                 fadeOutParticlesFast();
                 closeResultWindow();
-                // 既存の処理の代わりにresetToTitleScreen関数を呼び出す
                 resetToTitleScreen();
             });
-            // ▲▲▲ 変更ここまで ▲▲▲
             
             resultRetryPracticeButton.addEventListener('click', () => {
                 fadeOutParticlesFast();
@@ -909,14 +1014,26 @@
 
             resultBackButton.addEventListener('click', handleGoBackToGame);
             resultRestartButton.addEventListener('click', handleRestartGame);
+
+            settingsButton.addEventListener('click', () => settingsWindow.classList.remove('hidden'));
+            closeSettingsWindow.addEventListener('click', () => settingsWindow.classList.add('hidden'));
+
+            bgmToggle.checked = audioManager.isBgmEnabled;
+            bgmToggle.addEventListener('change', () => audioManager.toggleBgm());
+            
+            seToggle.checked = audioManager.isSeEnabled;
+            seToggle.addEventListener('change', () => audioManager.toggleSe());
+            
+            // Initial UI State
             executeButton.classList.add('opacity-50', 'scale-105', 'cursor-not-allowed');
             executeButton.classList.remove('hover:bg-green-700', 'hover:scale-110');
             updateSubAreaVisibility();
             updateAreaPlaceholders();
+            updatePracticeClearCountDisplay();
+            audioManager.playBgm('title');
         }
 
         function resetGame() {
-            if (!currentStage) return;
             loadStage(currentStage.stageNumber);
         }
 
@@ -1028,6 +1145,8 @@
             if (e.pointerType === 'touch' && !e.isPrimary) return;
             const coinElement = e.target.closest('.coin');
             if (!coinElement) return;
+            
+            audioManager.playSe('grab');
 
             isPointerDown = true;
             currentDraggedCoinElement = coinElement;
@@ -1099,6 +1218,7 @@
             const coinData = coins.find(c => c.id === coinId);
 
             if (isDragging) {
+                audioManager.playSe('drop');
                 let droppedInArea = null;
                 const dropTargets = [
                     { element: leftPanArea, name: 'leftPan' }, { element: rightPanArea, name: 'rightPan' },
@@ -1304,9 +1424,18 @@
         function updateExecutionCountDisplay() { executionCountDisplay.textContent = executionCount; }
         function updateEvaluationStarsDisplay() { evaluationStarsDisplay.innerHTML = Array(3).fill(0).map((_, i) => `<i class="fas fa-star ${i < evaluationStars ? 'text-yellow-400' : 'text-gray-400'}"></i>`).join(''); }
         function updatePracticeProgressDisplay() { practiceProgressDisplay.innerHTML = Array(5).fill(0).map((_, i) => { let iconClass = 'fas text-2xl '; if (i < currentPracticeStageIndex) iconClass += 'fa-box text-green-400'; else if (i === currentPracticeStageIndex) iconClass += 'fa-box-open text-blue-400'; else iconClass += 'fa-box text-gray-400'; return `<i class="${iconClass}"></i>`; }).join(''); }
-        function updateDiscardButtonState() { discardButton.disabled = trashBin.length === 0; discardButton.classList.toggle('opacity-50', discardButton.disabled); discardButton.classList.toggle('cursor-not-allowed', discardButton.disabled); }
+        function updateDiscardButtonState() {
+            const targetCoinCount = currentStage ? currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0) : 0;
+            const trashBinCount = trashBin.length;
+            const isEnabled = trashBinCount > 0 && trashBinCount === targetCoinCount;
+            
+            discardButton.disabled = !isEnabled;
+            discardButton.classList.toggle('opacity-50', !isEnabled);
+            discardButton.classList.toggle('cursor-not-allowed', !isEnabled);
+        }
 
         function comparePans() {
+            audioManager.playSe('execute');
             const mainPansReady = balanceLeftPan.length > 0 && balanceRightPan.length > 0;
             const miniPansReady = miniBalanceLeftPan.length > 0 && miniBalanceRightPan.length > 0;
             const electromagnetBoxHasCoins = electromagnetBox.length > 0;
@@ -1361,18 +1490,15 @@
             }, {});
 
             const targetCoinCounts = currentStage.targetCoinArray.reduce((acc, t) => {
-                acc[t.type] = t.count;
+                acc[t.type] = (acc[t.type] || 0) + t.count;
                 return acc;
             }, {});
 
-            const trashKeys = Object.keys(trashCoinTypes);
-            const targetKeys = Object.keys(targetCoinCounts);
+            const trashKeys = Object.keys(trashCoinTypes).sort();
+            const targetKeys = Object.keys(targetCoinCounts).sort();
 
-            const typesMatch = trashKeys.length === targetKeys.length &&
-                                 trashKeys.every(key => targetCoinCounts[key] === trashCoinTypes[key]);
-
-            const isCorrect = typesMatch &&
-                              trashBin.length === currentStage.targetCoinArray.reduce((sum, t) => sum + t.count, 0);
+            const isCorrect = JSON.stringify(trashKeys) === JSON.stringify(targetKeys) &&
+                              trashKeys.every(key => targetCoinCounts[key] === trashCoinTypes[key]);
 
             if (isCorrect) {
                  if (isInPracticeMode) {
@@ -1440,7 +1566,8 @@
         }
         function closePracticeModeWindow() { practiceModeWindow.classList.add('hidden'); }
         
-        function startPracticeMode() { 
+        function startPracticeMode() {
+            audioManager.playBgm('practice');
             if (!titleScreen.classList.contains('hidden')) {
                 titleScreen.classList.add('hidden');
                 infoArea.classList.remove('hidden');
@@ -1476,10 +1603,13 @@
             resultWindow.classList.remove('hidden');
 
             if (isCorrect) {
+                audioManager.playSe('clear');
                 if (particles.length === 0) {
                     createParticles();
                     animateParticles();
                 }
+            } else {
+                audioManager.playSe('fail');
             }
             
             resultStageInfo.textContent = `ステージ ${currentStage.stageNumber}`;
@@ -1513,6 +1643,12 @@
                         resultEndPracticeButton.classList.remove('hidden');
                         resultRetryPracticeButton.classList.remove('hidden');
                         resultRetryPracticeButton.textContent = '最初から';
+                        
+                        let clearCount = parseInt(localStorage.getItem('practiceModeClears') || '0');
+                        clearCount++;
+                        localStorage.setItem('practiceModeClears', clearCount.toString());
+                        updatePracticeClearCountDisplay();
+
                     } else {
                         resultNextButton.classList.remove('hidden');
                     }
@@ -1580,16 +1716,12 @@
         }
 
         function resetToTitleScreen() {
-            // UIの表示/非表示をタイトル画面に設定
+            audioManager.playBgm('title');
             titleScreen.classList.remove('hidden');
             infoArea.classList.add('hidden');
             gameBoard.classList.add('hidden');
-
-            // モードフラグをリセット
             isInStoryMode = false;
             isInPracticeMode = false;
-
-            // ゲームの状態変数を完全にリセット
             currentStage = null;
             executionCount = 0;
             coins = [];
@@ -1600,27 +1732,31 @@
             trashBin = [];
             electromagnetBox = [];
             
-            // ゲームボード上の全てのコイン要素を削除
             const coinElements = document.querySelectorAll('.coin');
             coinElements.forEach(coin => coin.remove());
 
-            // インフォメーションエリアのUIをデフォルト（青色）にリセット
             infoArea.classList.replace('from-red-600', 'from-blue-600');
             infoArea.classList.replace('to-red-800', 'to-blue-800');
             executionCountDisplay.classList.replace('text-red-500', 'text-white');
             updateExecutionCountDisplay();
             
-            // ゲーム目標テキストと評価表示をリセット
             gameGoalText.textContent = '目標: ステージを選択してください';
             evaluationStars = 0;
             updateEvaluationStarsDisplay();
             
-            // 実践モード用の進捗表示を隠し、ストーリーモード用の星表示に切り替え
             practiceProgressDisplay.classList.add('hidden');
             evaluationStarsDisplay.classList.remove('hidden');
 
-            // 各エリアのプレースホルダー表示を更新
             updateAreaPlaceholders();
+            updatePracticeClearCountDisplay();
+        }
+
+        function updatePracticeClearCountDisplay() {
+            const displayElement = document.getElementById('practiceClearCountDisplay');
+            if (displayElement) {
+                const clearCount = localStorage.getItem('practiceModeClears') || '0';
+                displayElement.textContent = `累計クリア回数: ${clearCount}回`;
+            }
         }
     </script>
 </body>
